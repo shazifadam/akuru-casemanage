@@ -1,9 +1,7 @@
 const CACHE_NAME = "akuru-cms-v1";
 
-// App shell files to pre-cache
+// App shell files to pre-cache (auth-free only)
 const STATIC_ASSETS = [
-  "/",
-  "/dashboard",
   "/manifest.json",
   "/logo.svg",
   "/logo-white.svg",
