@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, ChevronDown, Menu } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
@@ -37,18 +38,24 @@ export function Header({ user, pageTitle, onMenuClick }: HeaderProps) {
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-background px-4 sm:px-6 gap-3">
-      {/* Left: hamburger (mobile) + page title */}
+      {/* Left: logo (mobile) */}
       <div className="flex items-center gap-3 min-w-0">
-        {/* Hamburger only on desktop-intermediate sizes (sidebar not yet shown) */}
-        <button
-          onClick={onMenuClick}
-          className="hidden"
-          aria-label="Open menu"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
+        {/* Logo shown on mobile where sidebar is hidden */}
+        <div className="flex items-center gap-2.5 lg:hidden">
+          <Image
+            src="/logo.svg"
+            alt="Akuru Type"
+            width={22}
+            height={24}
+            className="shrink-0"
+          />
+          <div className="flex flex-col leading-tight">
+            <span className="text-sm font-semibold text-foreground">Akuru Type</span>
+            <span className="text-[10px] text-muted-foreground tracking-wide">Case Management</span>
+          </div>
+        </div>
         {pageTitle && (
-          <h1 className="text-sm font-semibold text-foreground truncate">{pageTitle}</h1>
+          <h1 className="hidden text-sm font-semibold text-foreground truncate lg:block">{pageTitle}</h1>
         )}
       </div>
 
