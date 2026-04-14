@@ -28,8 +28,14 @@ export const metadata: Metadata = {
     title: "Akuru CMS",
   },
   icons: {
-    icon: "/logo.svg",
-    apple: "/logo.svg",
+    icon: [
+      { url: "/icons/favicon.png", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icons/120.png",  sizes: "120x120"  },
+      { url: "/icons/152.png",  sizes: "152x152"  },
+      { url: "/icons/180.png",  sizes: "180x180"  },
+    ],
   },
   other: {
     "mobile-web-app-capable": "yes",
