@@ -37,7 +37,13 @@ export function Header({ user, pageTitle, onMenuClick }: HeaderProps) {
   }
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-border bg-background px-4 sm:px-6 gap-3">
+    <header
+      className="flex items-center justify-between border-b border-border bg-background px-4 sm:px-6 gap-3"
+      style={{
+        paddingTop: "env(safe-area-inset-top)",
+        minHeight: "calc(3.5rem + env(safe-area-inset-top))",
+      }}
+    >
       {/* Left: logo (mobile) */}
       <div className="flex items-center gap-3 min-w-0">
         {/* Logo shown on mobile where sidebar is hidden */}
