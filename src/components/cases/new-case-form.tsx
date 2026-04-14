@@ -17,6 +17,7 @@ import { Loader2 } from "lucide-react";
 import { createCase } from "@/lib/actions/cases";
 import { USAGE_CONTEXT_LABELS, CASE_PRIORITY_LABELS } from "@/types/database";
 import type { UsageContext, CasePriority } from "@/types/database";
+import { BuyerCombobox } from "@/components/cases/buyer-combobox";
 
 interface Font {
   id: string;
@@ -87,7 +88,7 @@ export function NewCaseForm({ fonts, buyers }: NewCaseFormProps) {
       </div>
 
       {/* Font + Priority row */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label>Font *</Label>
           <Select value={fontId} onValueChange={setFontId}>
@@ -126,21 +127,13 @@ export function NewCaseForm({ fonts, buyers }: NewCaseFormProps) {
       {/* Buyer (optional at creation) */}
       <div className="space-y-1.5">
         <Label>Buyer / Contact</Label>
-        <Select value={buyerId} onValueChange={setBuyerId}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select buyer (optional)" />
-          </SelectTrigger>
-          <SelectContent>
-            {buyers.map((b) => (
-              <SelectItem key={b.id} value={b.id}>
-                {b.name}
-                {b.organization ? ` — ${b.organization}` : ""}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <BuyerCombobox
+          buyers={buyers}
+          value={buyerId}
+          onChange={(id) => setBuyerId(id)}
+        />
         <p className="text-xs text-muted-foreground">
-          Can be linked later if not known yet
+          Search by name or organisation — or create a new buyer inline
         </p>
       </div>
 
@@ -190,7 +183,7 @@ export function NewCaseForm({ fonts, buyers }: NewCaseFormProps) {
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
           Election Case (optional)
         </p>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="constituency">Constituency (Dhaira)</Label>
             <Input id="constituency" name="constituency" placeholder="e.g. Naifaru Dhaira" />

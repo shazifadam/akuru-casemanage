@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { ChevronLeft, ExternalLink } from "lucide-react";
+import { ChevronLeft, ExternalLink, Pencil } from "lucide-react";
 import { LicensePaymentBadge } from "@/components/licenses/license-payment-badge";
 import { LicenseSourceBadge } from "@/components/licenses/license-source-badge";
 import { LicenseActions } from "@/components/licenses/license-actions";
@@ -51,7 +51,16 @@ export default async function LicenseDetailPage({ params }: PageProps) {
             <LicenseSourceBadge source={license.source as LicenseSource} />
           </div>
         </div>
-        <LicenseActions licenseId={id} currentStatus={license.payment_status as PaymentStatus} qbSynced={license.qb_synced} isAdmin={isAdmin} />
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/licenses/${id}/edit`}
+            className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium hover:bg-accent transition-colors"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit
+          </Link>
+          <LicenseActions licenseId={id} currentStatus={license.payment_status as PaymentStatus} qbSynced={license.qb_synced} isAdmin={isAdmin} />
+        </div>
       </div>
 
       {/* Financial breakdown */}

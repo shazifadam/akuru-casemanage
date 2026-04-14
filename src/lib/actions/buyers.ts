@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { BuyerType } from "@/types/database";
@@ -35,6 +35,7 @@ export async function createBuyer(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/buyers");
+  revalidateTag("buyers");
   redirect(`/buyers/${data.id}`);
 }
 
@@ -65,6 +66,35 @@ export async function updateBuyer(buyerId: string, formData: FormData) {
 
   revalidatePath(`/buyers/${buyerId}`);
   revalidatePath("/buyers");
+  revalidateTag("buyers");
+}
+
+// ── Quick-create a buyer (name only, returns id) ───────────────────────────────
+export async function quickCreateBuyer(
+  name: string,
+  buyerType: BuyerType = "individual"
+): Promise<{ id: string; name: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const normalized = name
+    .trim()
+    .split(" ")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+
+  const { data, error } = await supabase
+    .from("buyers")
+    .insert({ name: normalized, buyer_type: buyerType })
+    .select("id, name")
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/buyers");
+  revalidateTag("buyers");
+  return data;
 }
 
 // ── Search for similar buyer names (fuzzy dedup) ───────────────────────────────
@@ -104,6 +134,7 @@ export async function mergeBuyers(targetId: string, sourceId: string) {
 
   revalidatePath("/buyers");
   revalidatePath(`/buyers/${targetId}`);
+  revalidateTag("buyers");
   redirect(`/buyers/${targetId}`);
 }
 
@@ -125,5 +156,6 @@ export async function deleteBuyer(buyerId: string) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/buyers");
+  revalidateTag("buyers");
   redirect("/buyers");
 }

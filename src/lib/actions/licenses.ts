@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { PaymentStatus, LicenseSource } from "@/types/database";
@@ -41,6 +41,7 @@ export async function createLicense(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/licenses");
+  revalidateTag("licenses");
   redirect(`/licenses/${data.id}`);
 }
 
@@ -70,6 +71,7 @@ export async function updateLicense(licenseId: string, formData: FormData) {
 
   revalidatePath(`/licenses/${licenseId}`);
   revalidatePath("/licenses");
+  revalidateTag("licenses");
 }
 
 // ── Toggle QB synced ───────────────────────────────────────────────────────────
@@ -83,6 +85,7 @@ export async function toggleQbSynced(licenseId: string, current: boolean) {
   if (error) throw new Error(error.message);
   revalidatePath(`/licenses/${licenseId}`);
   revalidatePath("/licenses");
+  revalidateTag("licenses");
 }
 
 // ── Toggle payment status ──────────────────────────────────────────────────────
@@ -96,6 +99,7 @@ export async function updatePaymentStatus(licenseId: string, status: PaymentStat
   if (error) throw new Error(error.message);
   revalidatePath(`/licenses/${licenseId}`);
   revalidatePath("/licenses");
+  revalidateTag("licenses");
 }
 
 // ── Delete a license (admin only) ──────────────────────────────────────────────
@@ -116,5 +120,6 @@ export async function deleteLicense(licenseId: string) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/licenses");
+  revalidateTag("licenses");
   redirect("/licenses");
 }

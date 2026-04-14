@@ -9,6 +9,7 @@ import { Loader2, Calculator } from "lucide-react";
 import { createLicense } from "@/lib/actions/licenses";
 import { calculateLicenseFinancials } from "@/types/database";
 import type { DbFont } from "@/types/database";
+import { BuyerCombobox } from "@/components/cases/buyer-combobox";
 
 interface Font extends Pick<DbFont, "id" | "name" | "base_price" | "contributor_share_pct" | "gst_rate" | "contributor_id"> {}
 interface Buyer { id: string; name: string; organization: string | null }
@@ -94,26 +95,18 @@ export function NewLicenseForm({ fonts, buyers, defaultCaseId, defaultBuyerId, d
       {/* Buyer */}
       <div className="space-y-1.5">
         <Label>Buyer *</Label>
-        <select
+        <BuyerCombobox
+          buyers={buyers}
           value={buyerId}
-          onChange={(e) => setBuyerId(e.target.value)}
-          className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-          required
-        >
-          <option value="">Select buyer…</option>
-          {buyers.map((b) => (
-            <option key={b.id} value={b.id}>{b.name}{b.organization ? ` — ${b.organization}` : ""}</option>
-          ))}
-        </select>
+          onChange={(id) => setBuyerId(id)}
+        />
         <p className="text-xs text-muted-foreground">
-          Can&apos;t find them?{" "}
-          <a href="/buyers/new" target="_blank" className="text-primary underline">Create new buyer</a>
-          {" "}first, then come back.
+          Search by name or organisation — or create a new buyer inline
         </p>
       </div>
 
       {/* Date + Source */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="purchase_date">Purchase Date</Label>
           <Input id="purchase_date" name="purchase_date" type="date" defaultValue={new Date().toISOString().split("T")[0]} required />

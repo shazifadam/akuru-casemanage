@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -36,8 +37,14 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Header */}
         <div className="mb-8 text-center">
-          <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground text-lg font-bold">
-            AT
+          <div className="mb-4 flex justify-center">
+            <Image
+              src="/logo.svg"
+              alt="Akuru Type"
+              width={36}
+              height={38}
+              priority
+            />
           </div>
           <h1 className="text-xl font-semibold text-foreground">Akuru Type CMS</h1>
           <p className="mt-1 text-sm text-muted-foreground">

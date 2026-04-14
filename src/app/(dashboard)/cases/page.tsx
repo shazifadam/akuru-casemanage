@@ -1,72 +1,56 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Plus, LayoutList, Kanban } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { CaseTable } from "@/components/cases/case-table";
 import { CaseFilters } from "@/components/cases/case-filters";
 import { CaseKanban } from "@/components/cases/case-kanban";
-import type { CaseWithRelations, CaseStatus, CasePriority } from "@/types/database";
+import { getCases, getActiveFonts } from "@/lib/data/queries";
+import type { CaseWithRelations, CaseStatus } from "@/types/database";
 
 interface PageProps {
   searchParams: Promise<{
-    status?: string;
+    status?:   string;
     priority?: string;
-    font?: string;
-    party?: string;
-    q?: string;
-    view?: string;
+    font?:     string;
+    party?:    string;
+    q?:        string;
+    view?:     string;
   }>;
 }
 
 export default async function CasesPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const supabase = await createClient();
 
-  // Fetch current user role
+  // ── Auth check (always dynamic — needs cookies) ───────────────────────────
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
   const { data: profile } = await supabase
     .from("users")
     .select("role")
-    .eq("id", user!.id)
+    .eq("id", user.id)
     .single();
   const isAdmin = profile?.role === "admin";
 
-  // Fetch fonts for filter dropdown
-  const { data: fonts } = await supabase
-    .from("fonts")
-    .select("id, name")
-    .eq("status", "active")
-    .order("name");
-
-  // Build cases query with joins
-  let query = supabase
-    .from("cases")
-    .select(`
-      *,
-      font:fonts(id, name),
-      buyer:buyers(id, name, organization),
-      identified_by_user:users(id, full_name)
-    `)
-    .order("created_at", { ascending: false });
-
-  // Apply filters
-  if (params.status) query = query.eq("status", params.status as CaseStatus);
-  if (params.priority) query = query.eq("priority", params.priority as CasePriority);
-  if (params.font) query = query.eq("font_id", params.font);
-  if (params.party) query = query.ilike("party", `%${params.party}%`);
-  if (params.q) {
-    query = query.or(
-      `title.ilike.%${params.q}%,usage_description.ilike.%${params.q}%,constituency.ilike.%${params.q}%`
-    );
-  }
-
-  const { data: cases } = await query;
+  // ── Cached data queries ───────────────────────────────────────────────────
+  const [cases, fonts] = await Promise.all([
+    getCases({
+      status:   params.status,
+      priority: params.priority,
+      font:     params.font,
+      party:    params.party,
+      q:        params.q,
+    }),
+    getActiveFonts(),
+  ]);
 
   const isKanban = params.view === "kanban";
 
-  // Pipeline counts for the status bar
   const statusCounts: Partial<Record<CaseStatus, number>> = {};
-  (cases ?? []).forEach((c) => {
+  cases.forEach((c) => {
     statusCounts[c.status as CaseStatus] = (statusCounts[c.status as CaseStatus] ?? 0) + 1;
   });
 
@@ -77,7 +61,7 @@ export default async function CasesPage({ searchParams }: PageProps) {
         <div>
           <h2 className="text-lg font-semibold">Cases</h2>
           <p className="text-xs text-muted-foreground">
-            {cases?.length ?? 0} case{cases?.length !== 1 ? "s" : ""} found
+            {cases.length} case{cases.length !== 1 ? "s" : ""} found
           </p>
         </div>
         <Button asChild size="sm">
@@ -90,7 +74,7 @@ export default async function CasesPage({ searchParams }: PageProps) {
 
       {/* Filters + view toggle */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <CaseFilters fonts={fonts ?? []} />
+        <CaseFilters fonts={fonts.map((f) => ({ id: f.id, name: f.name }))} />
         <div className="flex items-center gap-1 rounded-md border border-border p-1">
           <Link
             href={`/cases?${new URLSearchParams({ ...params, view: "table" }).toString()}`}
@@ -119,9 +103,9 @@ export default async function CasesPage({ searchParams }: PageProps) {
 
       {/* View */}
       {isKanban ? (
-        <CaseKanban cases={(cases ?? []) as CaseWithRelations[]} />
+        <CaseKanban cases={cases as unknown as CaseWithRelations[]} />
       ) : (
-        <CaseTable cases={(cases ?? []) as CaseWithRelations[]} isAdmin={isAdmin} />
+        <CaseTable cases={cases as unknown as CaseWithRelations[]} isAdmin={isAdmin} />
       )}
     </div>
   );

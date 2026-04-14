@@ -2,18 +2,20 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, Search, ChevronDown } from "lucide-react";
+import { LogOut, ChevronDown, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
+import { GlobalSearch } from "@/components/layout/global-search";
 import type { AppUser } from "@/types";
 
 interface HeaderProps {
   user: AppUser;
   pageTitle?: string;
+  onMenuClick?: () => void;
 }
 
-export function Header({ user, pageTitle }: HeaderProps) {
+export function Header({ user, pageTitle, onMenuClick }: HeaderProps) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -34,24 +36,26 @@ export function Header({ user, pageTitle }: HeaderProps) {
   }
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-border bg-background px-6">
-      <div className="flex items-center gap-2">
+    <header className="flex h-14 items-center justify-between border-b border-border bg-background px-4 sm:px-6 gap-3">
+      {/* Left: hamburger (mobile) + page title */}
+      <div className="flex items-center gap-3 min-w-0">
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent transition-colors shrink-0"
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
         {pageTitle && (
-          <h1 className="text-sm font-semibold text-foreground">{pageTitle}</h1>
+          <h1 className="text-sm font-semibold text-foreground truncate">{pageTitle}</h1>
         )}
       </div>
 
-      {/* Global search placeholder */}
-      <button className="flex items-center gap-2 rounded-md border border-input bg-muted/40 px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted transition-colors">
-        <Search className="h-3.5 w-3.5" />
-        <span>Search cases, licenses, buyers...</span>
-        <kbd className="ml-4 hidden rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline-block">
-          ⌘K
-        </kbd>
-      </button>
+      {/* Centre: global search (hidden on mobile) */}
+      <GlobalSearch />
 
-      {/* User menu */}
-      <div className="relative">
+      {/* Right: user menu */}
+      <div className="relative shrink-0">
         <button
           onClick={() => setMenuOpen(!menuOpen)}
           className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent transition-colors"
@@ -67,7 +71,7 @@ export function Header({ user, pageTitle }: HeaderProps) {
               {user.role}
             </span>
           </div>
-          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+          <ChevronDown className="h-3 w-3 text-muted-foreground hidden sm:block" />
         </button>
 
         {menuOpen && (
@@ -78,7 +82,7 @@ export function Header({ user, pageTitle }: HeaderProps) {
             />
             <div className="absolute right-0 top-10 z-20 w-44 rounded-md border border-border bg-popover shadow-md">
               <div className="p-2">
-                <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                <div className="px-2 py-1.5 text-xs text-muted-foreground truncate">
                   {user.email}
                 </div>
                 <hr className="my-1 border-border" />

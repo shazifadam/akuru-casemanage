@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -84,6 +84,7 @@ export async function updateCase(caseId: string, formData: FormData) {
 
   revalidatePath(`/cases/${caseId}`);
   revalidatePath("/cases");
+  revalidateTag("cases");
 }
 
 // ── Transition case status with validation ────────────────────────────────────
@@ -141,6 +142,7 @@ export async function transitionCaseStatus(
   // Status change is auto-logged by the DB trigger (005_functions_and_triggers.sql)
   revalidatePath(`/cases/${caseId}`);
   revalidatePath("/cases");
+  revalidateTag("cases");
 }
 
 // ── Add a comment to the activity log ────────────────────────────────────────
@@ -232,6 +234,7 @@ export async function deleteCase(caseId: string) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/cases");
+  revalidateTag("cases");
   redirect("/cases");
 }
 
@@ -255,4 +258,5 @@ export async function bulkUpdateCaseStatus(
   if (error) throw new Error(error.message);
 
   revalidatePath("/cases");
+  revalidateTag("cases");
 }

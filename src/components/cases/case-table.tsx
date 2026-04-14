@@ -31,10 +31,18 @@ interface CaseTableProps {
   isAdmin: boolean;
 }
 
+// Primary progression path
 const NEXT_STATUS: Partial<Record<CaseStatus, CaseStatus>> = {
-  identified: "verify_license",
-  verify_license: "license_verified",
+  identified:       "verify_license",
+  verify_license:   "license_verified",
   license_verified: "converted",
+};
+
+// Alternative terminal actions available from non-terminal statuses
+const ALT_STATUSES: Partial<Record<CaseStatus, { status: CaseStatus; label: string }[]>> = {
+  identified:       [{ status: "fined",     label: "Mark as Fined"    }, { status: "dismissed", label: "Dismiss" }],
+  verify_license:   [{ status: "fined",     label: "Mark as Fined"    }, { status: "dismissed", label: "Dismiss" }],
+  license_verified: [{ status: "fined",     label: "Mark as Fined"    }, { status: "dismissed", label: "Dismiss" }],
 };
 
 export function CaseTable({ cases, isAdmin }: CaseTableProps) {
@@ -91,8 +99,8 @@ export function CaseTable({ cases, isAdmin }: CaseTableProps) {
       )}
 
       {/* Table */}
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <table className="w-full min-w-[800px] text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/40">
               <th className="w-10 px-4 py-3">
@@ -101,38 +109,38 @@ export function CaseTable({ cases, isAdmin }: CaseTableProps) {
                   onCheckedChange={toggleAll}
                 />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-3.5 text-left text-xs font-medium text-muted-foreground">
                 Case #
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-3.5 text-left text-xs font-medium text-muted-foreground">
                 Title
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-3.5 text-left text-xs font-medium text-muted-foreground">
                 Font
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-3.5 text-left text-xs font-medium text-muted-foreground">
                 Buyer
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-3.5 text-left text-xs font-medium text-muted-foreground">
                 Status
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-3.5 text-left text-xs font-medium text-muted-foreground">
                 Priority
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-3.5 text-left text-xs font-medium text-muted-foreground">
                 Date
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+              <th className="px-4 py-3.5 text-left text-xs font-medium text-muted-foreground">
                 Open
               </th>
-              <th className="w-10 px-4 py-3" />
+              <th className="w-10 px-4 py-3.5" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {cases.map((c) => (
               <tr
                 key={c.id}
-                className="group hover:bg-muted/20 transition-colors"
+                className="group hover:bg-muted/20 transition-colors [&>td]:py-4"
               >
                 <td className="px-4 py-3">
                   <Checkbox
@@ -201,6 +209,17 @@ export function CaseTable({ cases, isAdmin }: CaseTableProps) {
                           Move to {CASE_STATUS_LABELS[NEXT_STATUS[c.status]!]}
                         </DropdownMenuItem>
                       )}
+                      {ALT_STATUSES[c.status]?.map((alt) => (
+                        <DropdownMenuItem
+                          key={alt.status}
+                          onClick={async () => {
+                            await bulkUpdateCaseStatus([c.id], alt.status);
+                            router.refresh();
+                          }}
+                        >
+                          {alt.label}
+                        </DropdownMenuItem>
+                      ))}
                       {isAdmin && (
                         <>
                           <DropdownMenuSeparator />
