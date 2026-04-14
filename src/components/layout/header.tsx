@@ -39,9 +39,10 @@ export function Header({ user, pageTitle, onMenuClick }: HeaderProps) {
     <header className="flex h-14 items-center justify-between border-b border-border bg-background px-4 sm:px-6 gap-3">
       {/* Left: hamburger (mobile) + page title */}
       <div className="flex items-center gap-3 min-w-0">
+        {/* Hamburger only on desktop-intermediate sizes (sidebar not yet shown) */}
         <button
           onClick={onMenuClick}
-          className="lg:hidden flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent transition-colors shrink-0"
+          className="hidden"
           aria-label="Open menu"
         >
           <Menu className="h-5 w-5" />

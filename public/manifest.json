@@ -1,0 +1,55 @@
+{
+  "name": "Akuru Type CMS",
+  "short_name": "Akuru CMS",
+  "description": "License enforcement and case management for Akuru Type",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#0a0a0a",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Case",
+      "url": "/cases/new",
+      "description": "Create a new enforcement case"
+    },
+    {
+      "name": "New License",
+      "url": "/licenses/new",
+      "description": "Issue a new license"
+    },
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "View the dashboard"
+    }
+  ]
+}
