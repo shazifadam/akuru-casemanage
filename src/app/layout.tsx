@@ -40,6 +40,27 @@ export const metadata: Metadata = {
   other: {
     "mobile-web-app-capable": "yes",
   },
+  openGraph: {
+    title: "Akuru Type CMS",
+    description: "License enforcement and case management for Akuru Type",
+    url: "https://akuru-casemanage.vercel.app",
+    siteName: "Akuru Type CMS",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Akuru Case Management",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Akuru Type CMS",
+    description: "License enforcement and case management for Akuru Type",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({
