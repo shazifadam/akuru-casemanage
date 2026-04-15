@@ -32,10 +32,10 @@ export function EditCaseForm({ caseData, fonts, buyers }: EditCaseFormProps) {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const [buyerId, setBuyerId] = useState(caseData.buyer_id ?? "");
+  const [buyerId, setBuyerId] = useState(caseData.buyer_id ?? "none");
   const [priority, setPriority] = useState<CasePriority>(caseData.priority);
-  const [usageContext, setUsageContext] = useState<UsageContext | "">(
-    caseData.usage_context ?? ""
+  const [usageContext, setUsageContext] = useState<UsageContext | "none">(
+    caseData.usage_context ?? "none"
   );
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -44,9 +44,9 @@ export function EditCaseForm({ caseData, fonts, buyers }: EditCaseFormProps) {
 
     const form = e.currentTarget;
     const formData = new FormData(form);
-    formData.set("buyer_id", buyerId);
+    formData.set("buyer_id", buyerId === "none" ? "" : buyerId);
     formData.set("priority", priority);
-    formData.set("usage_context", usageContext);
+    formData.set("usage_context", usageContext === "none" ? "" : usageContext);
 
     startTransition(async () => {
       try {
@@ -87,7 +87,7 @@ export function EditCaseForm({ caseData, fonts, buyers }: EditCaseFormProps) {
               <SelectValue placeholder="Select buyer" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="none">None</SelectItem>
               {buyers.map((b) => (
                 <SelectItem key={b.id} value={b.id}>
                   {b.name}{b.organization ? ` — ${b.organization}` : ""}
@@ -100,12 +100,12 @@ export function EditCaseForm({ caseData, fonts, buyers }: EditCaseFormProps) {
 
       <div className="space-y-1.5">
         <Label>Usage Context</Label>
-        <Select value={usageContext} onValueChange={(v) => setUsageContext(v as UsageContext)}>
+        <Select value={usageContext} onValueChange={(v) => setUsageContext(v as UsageContext | "none")}>
           <SelectTrigger>
             <SelectValue placeholder="Where was the font spotted?" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">None</SelectItem>
+            <SelectItem value="none">None</SelectItem>
             {(Object.entries(USAGE_CONTEXT_LABELS) as [UsageContext, string][]).map(
               ([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>
             )}
