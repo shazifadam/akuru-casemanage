@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
@@ -38,19 +39,27 @@ export default async function LicensesPage({ searchParams }: PageProps) {
   if (!user) redirect("/login");
 
   // ── Cached data ────────────────────────────────────────────────────────────
-  const [licenses, fonts] = await Promise.all([
-    getLicenses({
-      font:   params.font,
-      status: params.status,
-      source: params.source,
-      q:      params.q,
-      from:   params.from,
-      to:     params.to,
-      sort:   params.sort,
-      order:  params.order,
-    }),
-    getActiveFonts(),
-  ]);
+  let licenses: Awaited<ReturnType<typeof getLicenses>> = [];
+  let fonts:    Awaited<ReturnType<typeof getActiveFonts>> = [];
+
+  try {
+    [licenses, fonts] = await Promise.all([
+      getLicenses({
+        font:   params.font   || undefined,
+        status: params.status || undefined,
+        source: params.source || undefined,
+        q:      params.q      || undefined,
+        from:   params.from   || undefined,
+        to:     params.to     || undefined,
+        sort:   params.sort   || undefined,
+        order:  params.order  || undefined,
+      }),
+      getActiveFonts(),
+    ]);
+  } catch (err) {
+    console.error("[licenses/page] data fetch error:", err);
+    throw err; // re-throw so error.tsx catches it with a useful message
+  }
 
   const totalRevenue = licenses.reduce((sum, l) => sum + (l.invoice_amount ?? 0), 0);
 
@@ -133,7 +142,9 @@ export default async function LicensesPage({ searchParams }: PageProps) {
           <p className="text-sm text-muted-foreground">No licenses found.</p>
         </div>
       ) : (
-        <LicenseTable licenses={licenses as any} />
+        <Suspense fallback={null}>
+          <LicenseTable licenses={licenses as any} />
+        </Suspense>
       )}
     </div>
   );
