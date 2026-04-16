@@ -201,6 +201,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS contributors_email_unique
 -- ── 6. SECURITY DEFINER functions: lock down search_path ─────────────────────
 -- Prevent search_path injection on existing trigger functions.
 
-ALTER FUNCTION handle_new_user()            SET search_path = public;
-ALTER FUNCTION log_case_status_change()     SET search_path = public;
-ALTER FUNCTION before_license_financials()  SET search_path = public;
+ALTER FUNCTION handle_new_user()              SET search_path = public;
+ALTER FUNCTION log_case_status_change()       SET search_path = public;
+ALTER FUNCTION calculate_license_financials() SET search_path = public;

@@ -29,11 +29,13 @@ export default async function ContributorDetailPage({ params }: PageProps) {
   const fontIds = fonts.map((f: any) => f.id);
 
   // All licenses for this contributor's fonts
-  const { data: licenses } = await supabase
-    .from("licenses")
-    .select("id, license_number, purchase_date, invoice_amount, contributor_share, payment_status, paid_to_contributor, font:fonts(name), buyer:buyers(name)")
-    .in("font_id", fontIds.length > 0 ? fontIds : ["none"])
-    .order("purchase_date", { ascending: false });
+  const { data: licenses } = fontIds.length > 0
+    ? await supabase
+        .from("licenses")
+        .select("id, license_number, purchase_date, invoice_amount, contributor_share, payment_status, paid_to_contributor, font:fonts(name), buyer:buyers(name)")
+        .in("font_id", fontIds)
+        .order("purchase_date", { ascending: false })
+    : { data: [] };
 
   // All payouts for this contributor
   const { data: payouts } = await supabase
@@ -42,12 +44,18 @@ export default async function ContributorDetailPage({ params }: PageProps) {
     .eq("contributor_id", id)
     .order("payout_date", { ascending: false });
 
-  // Balance from view
-  const { data: balanceRow } = await supabase
-    .from("contributor_balances")
-    .select("*")
-    .eq("contributor_id", id)
-    .single();
+  // Balance from view — wrapped in try/catch; a view error returns zeros, not a crash
+  let balanceRow: { total_earned?: number; total_paid_out?: number; balance_owed?: number } | null = null;
+  try {
+    const { data } = await supabase
+      .from("contributor_balances")
+      .select("*")
+      .eq("contributor_id", id)
+      .single();
+    balanceRow = data;
+  } catch {
+    // View unavailable — show zeros rather than crash the page
+  }
 
   const totalEarned = balanceRow?.total_earned ?? 0;
   const totalPaid = balanceRow?.total_paid_out ?? 0;
