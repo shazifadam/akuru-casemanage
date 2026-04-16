@@ -165,20 +165,24 @@ export interface ActivityLogWithUser extends DbCaseActivityLog {
 // ---- Calculated types ----
 
 export interface LicenseFinancialPreview {
-  base_price: number;       // Font base price excl. GST
-  invoice_amount: number;   // Total incl. GST (what buyer pays)
+  base_price: number;       // Invoice rate incl. GST (what buyer pays)
+  invoice_amount: number;   // Same as base_price — the GST-inclusive total
   gst_amount: number;
   contributor_share: number;
   akuru_share: number;
   contributor_share_pct: number;
 }
 
-/** Front-end utility: given a font and optional override amount, calculate financials */
+/** Front-end utility: given a font and optional override amount, calculate financials.
+ *  base_price is stored as the GST-inclusive invoice rate.
+ *  GST is back-calculated: gst = invoiceAmount * rate / (1 + rate)
+ */
 export function calculateLicenseFinancials(
   font: Pick<DbFont, "base_price" | "contributor_share_pct" | "gst_rate">,
   overrideAmount?: number
 ): LicenseFinancialPreview {
-  const invoiceAmount = overrideAmount ?? font.base_price * (1 + font.gst_rate);
+  // base_price is already GST-inclusive; override (if any) is also GST-inclusive
+  const invoiceAmount = overrideAmount ?? font.base_price;
   const baseExclGst = invoiceAmount / (1 + font.gst_rate);
   const gstAmount = invoiceAmount - baseExclGst;
   const contributorShare = baseExclGst * (font.contributor_share_pct / 100);

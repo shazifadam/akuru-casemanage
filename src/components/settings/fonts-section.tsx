@@ -136,7 +136,7 @@ export function FontsSection({ fonts, contributors }: FontsSectionProps) {
               </select>
             </div>
             <div>
-              <label className={labelCls}>Base Price (MVR, excl. GST)</label>
+              <label className={labelCls}>Invoice Rate (MVR, incl. GST)</label>
               <input
                 name="base_price"
                 type="number"
@@ -199,7 +199,7 @@ export function FontsSection({ fonts, contributors }: FontsSectionProps) {
           <table className="w-full min-w-[620px] text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                {["Font", "Contributor", "Base Price", "Share %", "Status", ""].map((h) => (
+                {["Font", "Contributor", "Invoice Rate", "Share %", "Status", ""].map((h) => (
                   <th
                     key={h}
                     className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground"
@@ -253,7 +253,7 @@ export function FontsSection({ fonts, contributors }: FontsSectionProps) {
                             </select>
                           </div>
                           <div>
-                            <label className={labelCls}>Base Price (MVR)</label>
+                            <label className={labelCls}>Invoice Rate (MVR, incl. GST)</label>
                             <input
                               name="base_price"
                               type="number"

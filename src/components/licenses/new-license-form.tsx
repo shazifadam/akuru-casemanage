@@ -47,11 +47,10 @@ export function NewLicenseForm({ fonts, buyers, defaultCaseId, defaultBuyerId, d
       )
     : null;
 
-  // When font changes, reset custom amount to the standard price
+  // When font changes, reset custom amount to the invoice rate (already GST-inclusive)
   useEffect(() => {
     if (selectedFont && !customAmount) {
-      const standard = selectedFont.base_price * (1 + selectedFont.gst_rate);
-      setCustomAmount(standard.toFixed(2));
+      setCustomAmount(selectedFont.base_price.toFixed(2));
     }
   }, [fontId]);
 
@@ -132,9 +131,11 @@ export function NewLicenseForm({ fonts, buyers, defaultCaseId, defaultBuyerId, d
           onChange={(e) => {
             setIsFine(e.target.checked);
             if (e.target.checked && selectedFont) {
-              setCustomAmount((selectedFont.base_price * 5 * (1 + selectedFont.gst_rate)).toFixed(2));
+              // Fine default = 5× the invoice rate (already incl. GST)
+              setCustomAmount((selectedFont.base_price * 5).toFixed(2));
             } else if (!e.target.checked && selectedFont) {
-              setCustomAmount((selectedFont.base_price * (1 + selectedFont.gst_rate)).toFixed(2));
+              // Reset to standard invoice rate
+              setCustomAmount(selectedFont.base_price.toFixed(2));
             }
           }}
           className="mt-0.5 h-4 w-4 rounded border-input"
