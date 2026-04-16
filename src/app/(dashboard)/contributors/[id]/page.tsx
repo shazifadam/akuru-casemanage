@@ -9,60 +9,112 @@ import type { PaymentStatus } from "@/types/database";
 
 interface PageProps { params: Promise<{ id: string }> }
 
-function mvr(n: number) {
-  return `MVR ${(n ?? 0).toLocaleString("en-MV", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function mvr(n: number | null | undefined) {
+  const num = typeof n === "number" && isFinite(n) ? n : 0;
+  try {
+    return `MVR ${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  } catch {
+    return `MVR ${num.toFixed(2)}`;
+  }
 }
 
 export default async function ContributorDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const supabase = await createClient();
 
-  const { data: contributor } = await supabase
-    .from("contributors")
-    .select("*, fonts(id, name, base_price, contributor_share_pct, gst_rate, status)")
-    .eq("id", id)
-    .single();
+  let supabase: Awaited<ReturnType<typeof createClient>>;
+  try {
+    supabase = await createClient();
+  } catch (err) {
+    console.error("[contributor/page] createClient failed:", err);
+    throw err;
+  }
+
+  // ── Contributor + fonts ─────────────────────────────────────────────────────
+  let contributor: any = null;
+  try {
+    const { data, error } = await supabase
+      .from("contributors")
+      .select("*, fonts(id, name, base_price, contributor_share_pct, gst_rate, status)")
+      .eq("id", id)
+      .single();
+    if (error) {
+      console.error("[contributor/page] contributor query error:", error.message, error.code);
+    }
+    contributor = data;
+  } catch (err) {
+    console.error("[contributor/page] contributor query threw:", err);
+    throw err;
+  }
 
   if (!contributor) notFound();
 
-  const fonts = (contributor.fonts as any[]) ?? [];
-  const fontIds = fonts.map((f: any) => f.id);
+  // Safely extract fonts — PostgREST may return null if relationship fails
+  const rawFonts = contributor.fonts;
+  const fonts: any[] = Array.isArray(rawFonts) ? rawFonts : [];
+  const fontIds: string[] = fonts.map((f: any) => f.id).filter(Boolean);
 
-  // All licenses for this contributor's fonts
-  const { data: licenses } = fontIds.length > 0
-    ? await supabase
+  // ── Licenses for this contributor's fonts ──────────────────────────────────
+  let licenses: any[] = [];
+  if (fontIds.length > 0) {
+    try {
+      const { data, error } = await supabase
         .from("licenses")
         .select("id, license_number, purchase_date, invoice_amount, contributor_share, payment_status, paid_to_contributor, font:fonts(name), buyer:buyers(name)")
         .in("font_id", fontIds)
-        .order("purchase_date", { ascending: false })
-    : { data: [] };
-
-  // All payouts for this contributor
-  const { data: payouts } = await supabase
-    .from("contributor_payouts")
-    .select("*")
-    .eq("contributor_id", id)
-    .order("payout_date", { ascending: false });
-
-  // Balance from view — wrapped in try/catch; a view error returns zeros, not a crash
-  let balanceRow: { total_earned?: number; total_paid_out?: number; balance_owed?: number } | null = null;
-  try {
-    const { data } = await supabase
-      .from("contributor_balances")
-      .select("*")
-      .eq("contributor_id", id)
-      .single();
-    balanceRow = data;
-  } catch {
-    // View unavailable — show zeros rather than crash the page
+        .order("purchase_date", { ascending: false });
+      if (error) {
+        console.error("[contributor/page] licenses query error:", error.message, error.code);
+      }
+      licenses = data ?? [];
+    } catch (err) {
+      console.error("[contributor/page] licenses query threw:", err);
+      // Non-fatal — show empty ledger
+    }
   }
 
-  const totalEarned = balanceRow?.total_earned ?? 0;
-  const totalPaid = balanceRow?.total_paid_out ?? 0;
-  const balance = balanceRow?.balance_owed ?? 0;
+  // ── Payout history ──────────────────────────────────────────────────────────
+  let payouts: any[] = [];
+  try {
+    const { data, error } = await supabase
+      .from("contributor_payouts")
+      .select("*")
+      .eq("contributor_id", id)
+      .order("payout_date", { ascending: false });
+    if (error) {
+      console.error("[contributor/page] payouts query error:", error.message, error.code);
+    }
+    payouts = data ?? [];
+  } catch (err) {
+    console.error("[contributor/page] payouts query threw:", err);
+    // Non-fatal — show empty history
+  }
+
+  // ── Balance from view ───────────────────────────────────────────────────────
+  let totalEarned = 0;
+  let totalPaid = 0;
+  let balance = 0;
+  try {
+    const { data, error } = await supabase
+      .from("contributor_balances")
+      .select("total_earned, total_paid_out, balance_owed")
+      .eq("contributor_id", id)
+      .single();
+    if (error) {
+      console.error("[contributor/page] contributor_balances error:", error.message, error.code);
+    }
+    if (data) {
+      totalEarned = typeof data.total_earned   === "number" ? data.total_earned   : 0;
+      totalPaid   = typeof data.total_paid_out === "number" ? data.total_paid_out : 0;
+      balance     = typeof data.balance_owed   === "number" ? data.balance_owed   : 0;
+    }
+  } catch (err) {
+    console.error("[contributor/page] contributor_balances threw:", err);
+    // Non-fatal — show zeros
+  }
 
   // Primary font for the calculator (first active font)
-  const primaryFont = fonts.find((f: any) => f.status === "active") ?? fonts[0];
+  const primaryFont = fonts.find((f: any) => f.status === "active") ?? fonts[0] ?? null;
+  const activeFonts = fonts.filter((f: any) => f.status === "active");
 
   return (
     <div className="space-y-6">
@@ -97,10 +149,10 @@ export default async function ContributorDetailPage({ params }: PageProps) {
         <RecordPayoutForm contributorId={id} contributorName={contributor.name} currentBalance={balance} />
 
         {/* Payout Calculator */}
-        {primaryFont && (
+        {primaryFont && activeFonts.length > 0 && (
           <PayoutCalculator
             contributorName={contributor.name}
-            fonts={fonts.filter((f: any) => f.status === "active")}
+            fonts={activeFonts}
           />
         )}
       </div>
@@ -108,7 +160,7 @@ export default async function ContributorDetailPage({ params }: PageProps) {
       {/* Sales Ledger */}
       <div className="rounded-xl border border-border bg-card p-5 space-y-3">
         <h3 className="text-sm font-semibold">Sales Ledger</h3>
-        {(licenses ?? []).length === 0 ? (
+        {licenses.length === 0 ? (
           <p className="text-sm text-muted-foreground">No licenses yet.</p>
         ) : (
           <div className="overflow-x-auto">
@@ -121,17 +173,19 @@ export default async function ContributorDetailPage({ params }: PageProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {(licenses ?? []).map((l) => (
+                {licenses.map((l: any) => (
                   <tr key={l.id} className="hover:bg-muted/20">
                     <td className="py-2.5">
                       <Link href={`/licenses/${l.id}`} className="font-mono text-xs text-primary hover:underline">{l.license_number}</Link>
                     </td>
-                    <td className="py-2.5 text-xs text-muted-foreground">{(l.font as any)?.name ?? "—"}</td>
-                    <td className="py-2.5 text-xs text-muted-foreground">{(l.buyer as any)?.name ?? "—"}</td>
+                    <td className="py-2.5 text-xs text-muted-foreground">{l.font?.name ?? "—"}</td>
+                    <td className="py-2.5 text-xs text-muted-foreground">{l.buyer?.name ?? "—"}</td>
                     <td className="py-2.5 text-xs text-muted-foreground">{l.purchase_date}</td>
                     <td className="py-2.5 text-xs font-medium">{mvr(l.invoice_amount)}</td>
                     <td className="py-2.5 text-xs font-medium text-emerald-700">{mvr(l.contributor_share)}</td>
-                    <td className="py-2.5"><LicensePaymentBadge status={l.payment_status as PaymentStatus} /></td>
+                    <td className="py-2.5">
+                      <LicensePaymentBadge status={(l.payment_status ?? "pending") as PaymentStatus} />
+                    </td>
                     <td className="py-2.5">
                       <span className={`text-xs ${l.paid_to_contributor ? "text-emerald-600" : "text-muted-foreground"}`}>
                         {l.paid_to_contributor ? "✓ Paid" : "Pending"}
@@ -148,7 +202,7 @@ export default async function ContributorDetailPage({ params }: PageProps) {
       {/* Payout History */}
       <div className="rounded-xl border border-border bg-card p-5 space-y-3">
         <h3 className="text-sm font-semibold">Payout History</h3>
-        {(payouts ?? []).length === 0 ? (
+        {payouts.length === 0 ? (
           <p className="text-sm text-muted-foreground">No payouts recorded yet.</p>
         ) : (
           <table className="w-full text-sm">
@@ -160,7 +214,7 @@ export default async function ContributorDetailPage({ params }: PageProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {(payouts ?? []).map((p) => (
+              {payouts.map((p: any) => (
                 <tr key={p.id} className="hover:bg-muted/20">
                   <td className="py-2.5 text-xs text-muted-foreground">{p.payout_date}</td>
                   <td className="py-2.5 text-xs text-muted-foreground">{p.period_description}</td>
