@@ -140,9 +140,10 @@ export function CaseTable({ cases, isAdmin }: CaseTableProps) {
             {cases.map((c) => (
               <tr
                 key={c.id}
-                className="group hover:bg-muted/20 transition-colors [&>td]:py-4"
+                onClick={() => router.push(`/cases/${c.id}`)}
+                className="group hover:bg-muted/20 transition-colors cursor-pointer [&>td]:py-4"
               >
-                <td className="px-4 py-3">
+                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <Checkbox
                     checked={selected.has(c.id)}
                     onCheckedChange={() => toggle(c.id)}
@@ -154,12 +155,9 @@ export function CaseTable({ cases, isAdmin }: CaseTableProps) {
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <Link
-                    href={`/cases/${c.id}`}
-                    className="font-medium text-foreground hover:underline line-clamp-1 max-w-[200px] block"
-                  >
+                  <span className="font-medium text-foreground line-clamp-1 max-w-[200px] block">
                     {c.title}
-                  </Link>
+                  </span>
                 </td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">
                   {c.font?.name ?? "—"}
@@ -181,7 +179,7 @@ export function CaseTable({ cases, isAdmin }: CaseTableProps) {
                 <td className="px-4 py-3 text-xs text-muted-foreground">
                   {daysOpen(c.identified_date, c.resolved_date)}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button

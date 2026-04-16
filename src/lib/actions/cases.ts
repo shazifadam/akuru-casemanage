@@ -9,6 +9,8 @@ import type {
   UsageContext,
   ResolutionType,
 } from "@/types/database";
+import { z } from "zod";
+import { CreateCaseSchema, UpdateCaseSchema, AddCommentSchema, AddEvidenceSchema } from "@/lib/validations";
 
 // ── Create a new case ─────────────────────────────────────────────────────────
 export async function createCase(formData: FormData) {
@@ -19,19 +21,30 @@ export async function createCase(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  const payload = {
-    title: formData.get("title") as string,
-    font_id: formData.get("font_id") as string,
-    priority: (formData.get("priority") as CasePriority) ?? "medium",
-    identified_date:
-      (formData.get("identified_date") as string) ||
-      new Date().toISOString().split("T")[0],
-    identified_by: user.id,
-    usage_context: (formData.get("usage_context") as UsageContext) || null,
+  const parsed = CreateCaseSchema.safeParse({
+    title:             formData.get("title"),
+    font_id:           formData.get("font_id"),
+    priority:          formData.get("priority") ?? "medium",
+    identified_date:   (formData.get("identified_date") as string) || new Date().toISOString().split("T")[0],
+    usage_context:     (formData.get("usage_context") as string) || null,
     usage_description: (formData.get("usage_description") as string) || null,
-    constituency: (formData.get("constituency") as string) || null,
-    party: (formData.get("party") as string) || null,
-    buyer_id: (formData.get("buyer_id") as string) || null,
+    constituency:      (formData.get("constituency") as string) || null,
+    party:             (formData.get("party") as string) || null,
+    buyer_id:          (formData.get("buyer_id") as string) || null,
+  });
+  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+
+  const payload = {
+    title: parsed.data.title,
+    font_id: parsed.data.font_id,
+    priority: parsed.data.priority as CasePriority,
+    identified_date: parsed.data.identified_date,
+    identified_by: user.id,
+    usage_context: (parsed.data.usage_context as UsageContext) ?? null,
+    usage_description: parsed.data.usage_description ?? null,
+    constituency: parsed.data.constituency ?? null,
+    party: parsed.data.party ?? null,
+    buyer_id: parsed.data.buyer_id ?? null,
     status: "identified" as CaseStatus,
   };
 
@@ -41,7 +54,10 @@ export async function createCase(formData: FormData) {
     .select("id")
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[createCase] DB error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
 
   // Log creation in activity log
   await supabase.from("case_activity_log").insert({
@@ -65,14 +81,25 @@ export async function updateCase(caseId: string, formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  const payload = {
-    title: formData.get("title") as string,
-    priority: formData.get("priority") as CasePriority,
-    usage_context: (formData.get("usage_context") as UsageContext) || null,
+  const parsed = UpdateCaseSchema.safeParse({
+    title:             formData.get("title"),
+    priority:          formData.get("priority"),
+    usage_context:     (formData.get("usage_context") as string) || null,
     usage_description: (formData.get("usage_description") as string) || null,
-    constituency: (formData.get("constituency") as string) || null,
-    party: (formData.get("party") as string) || null,
-    buyer_id: (formData.get("buyer_id") as string) || null,
+    constituency:      (formData.get("constituency") as string) || null,
+    party:             (formData.get("party") as string) || null,
+    buyer_id:          (formData.get("buyer_id") as string) || null,
+  });
+  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+
+  const payload = {
+    title: parsed.data.title,
+    priority: parsed.data.priority as CasePriority,
+    usage_context: (parsed.data.usage_context as UsageContext) ?? null,
+    usage_description: parsed.data.usage_description ?? null,
+    constituency: parsed.data.constituency ?? null,
+    party: parsed.data.party ?? null,
+    buyer_id: parsed.data.buyer_id ?? null,
   };
 
   const { error } = await supabase
@@ -80,7 +107,10 @@ export async function updateCase(caseId: string, formData: FormData) {
     .update(payload)
     .eq("id", caseId);
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[updateCase] DB error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
 
   revalidatePath(`/cases/${caseId}`);
   revalidatePath("/cases");
@@ -137,7 +167,10 @@ export async function transitionCaseStatus(
     .update(updatePayload)
     .eq("id", caseId);
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[transitionCaseStatus] DB error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
 
   // Status change is auto-logged by the DB trigger (005_functions_and_triggers.sql)
   revalidatePath(`/cases/${caseId}`);
@@ -154,7 +187,8 @@ export async function addCaseComment(caseId: string, comment: string) {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  if (!comment.trim()) throw new Error("Comment cannot be empty");
+  const parsed = AddCommentSchema.safeParse({ comment });
+  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
 
   const { error } = await supabase.from("case_activity_log").insert({
     case_id: caseId,
@@ -163,7 +197,10 @@ export async function addCaseComment(caseId: string, comment: string) {
     comment: comment.trim(),
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[addCaseComment] DB error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
   revalidatePath(`/cases/${caseId}`);
 }
 
@@ -180,6 +217,9 @@ export async function addCaseEvidence(
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
+  const parsed = AddEvidenceSchema.safeParse({ attachmentUrl, comment });
+  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+
   const { error } = await supabase.from("case_activity_log").insert({
     case_id: caseId,
     user_id: user.id,
@@ -188,7 +228,10 @@ export async function addCaseEvidence(
     comment: comment?.trim() || null,
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[addCaseEvidence] DB error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
   revalidatePath(`/cases/${caseId}`);
 }
 
@@ -206,7 +249,10 @@ export async function linkBuyerToCase(caseId: string, buyerId: string) {
     .update({ buyer_id: buyerId })
     .eq("id", caseId);
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[linkBuyerToCase] DB error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
 
   await supabase.from("case_activity_log").insert({
     case_id: caseId,
@@ -231,7 +277,10 @@ export async function deleteCase(caseId: string) {
   if (profile?.role !== "admin") throw new Error("Admin access required");
 
   const { error } = await supabase.from("cases").delete().eq("id", caseId);
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[deleteCase] DB error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
 
   revalidatePath("/cases");
   revalidateTag("cases");
@@ -250,12 +299,30 @@ export async function bulkUpdateCaseStatus(
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
+  const TERMINAL_STATUSES = ["converted", "fined", "dismissed"];
+
+  if (caseIds.length === 0) throw new Error("No cases selected");
+  if (caseIds.length > 100) throw new Error("Maximum 100 cases per bulk operation");
+
+  // Validate all IDs are UUIDs
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!caseIds.every((id) => uuidRegex.test(id))) throw new Error("Invalid case ID format");
+
+  // Terminal status changes require admin
+  if (TERMINAL_STATUSES.includes(newStatus)) {
+    const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+    if (profile?.role !== "admin") throw new Error("Admin access required to bulk-apply terminal statuses");
+  }
+
   const { error } = await supabase
     .from("cases")
     .update({ status: newStatus })
     .in("id", caseIds);
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[bulkUpdateCaseStatus] DB error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
 
   revalidatePath("/cases");
   revalidateTag("cases");

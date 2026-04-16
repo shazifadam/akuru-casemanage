@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { ReportsClient } from "@/components/reports/reports-client";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import type {
   MonthlyRow,
   FontRow,
@@ -8,17 +9,22 @@ import type {
   ReportsData,
 } from "@/components/reports/reports-client";
 
+interface PageProps {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}
+
 function monthLabel(ym: string): string {
   const [y, m] = ym.split("-");
   const d = new Date(parseInt(y), parseInt(m) - 1, 1);
   return d.toLocaleString("en-MV", { month: "short", year: "numeric" });
 }
 
-export default async function ReportsPage() {
+export default async function ReportsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
   const supabase = await createClient();
 
   // ── Fetch all licenses with relations ─────────────────────────────────────
-  const { data: licenses } = await supabase
+  let licQuery = supabase
     .from("licenses")
     .select(
       `id, license_number, purchase_date, invoice_amount, gst_amount,
@@ -27,6 +33,11 @@ export default async function ReportsPage() {
        buyer:buyers(id, name)`
     )
     .order("purchase_date", { ascending: false });
+
+  if (params.from) licQuery = licQuery.gte("purchase_date", params.from);
+  if (params.to)   licQuery = licQuery.lte("purchase_date", params.to);
+
+  const { data: licenses } = await licQuery;
 
   // Only paid licenses count as revenue
   const paid = (licenses ?? []).filter((l) => l.payment_status === "paid");
@@ -94,20 +105,24 @@ export default async function ReportsPage() {
     .select("*")
     .order("total_earned", { ascending: false });
 
-  // Count licenses per contributor
+  // Count licenses per contributor and compute filtered totalEarned
   const contribLicCount: Record<string, number> = {};
+  const contribEarned: Record<string, number> = {};
   for (const l of paid) {
     const font = l.font as any;
     const contribId = font?.contributor?.id;
     if (contribId) {
       contribLicCount[contribId] = (contribLicCount[contribId] ?? 0) + 1;
+      contribEarned[contribId] = (contribEarned[contribId] ?? 0) + (l.contributor_share ?? 0);
     }
   }
+
+  const isDateFiltered = !!(params.from || params.to);
 
   const byContributor: ContributorRow[] = (balancesRaw ?? []).map((b) => ({
     contributorId: b.contributor_id,
     contributorName: (b as any).contributor_name ?? "—",
-    totalEarned: b.total_earned ?? 0,
+    totalEarned: isDateFiltered ? (contribEarned[b.contributor_id] ?? 0) : (b.total_earned ?? 0),
     totalPaidOut: b.total_paid_out ?? 0,
     balanceOwed: b.balance_owed ?? 0,
     licenseCount: contribLicCount[b.contributor_id] ?? 0,
@@ -165,11 +180,15 @@ export default async function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold">Financial Reports</h2>
-        <p className="text-xs text-muted-foreground">
-          Revenue analysis across {paid.length} paid license{paid.length !== 1 ? "s" : ""}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold">Financial Reports</h2>
+          <p className="text-xs text-muted-foreground">
+            Revenue analysis across {paid.length} paid license{paid.length !== 1 ? "s" : ""}
+            {isDateFiltered ? " · filtered by date" : ""}
+          </p>
+        </div>
+        <DateRangePicker fromParam="from" toParam="to" />
       </div>
       <ReportsClient data={reportsData} />
     </div>

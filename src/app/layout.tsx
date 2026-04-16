@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 import { PwaRegister } from "@/components/pwa-register";
 
@@ -71,6 +72,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body className="antialiased">
+        <NextTopLoader
+          color="#2563eb"
+          height={2}
+          showSpinner={false}
+          shadow={false}
+        />
         {children}
         <PwaRegister />
       </body>

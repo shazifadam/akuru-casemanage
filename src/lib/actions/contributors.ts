@@ -2,6 +2,8 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { z } from "zod";
+import { RecordPayoutSchema } from "@/lib/validations";
 
 // ── Record a contributor payout ────────────────────────────────────────────────
 export async function recordPayout(formData: FormData) {
@@ -9,12 +11,27 @@ export async function recordPayout(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
+  // Payout recording is a financial write — admin only
+  const { data: profile } = await supabase
+    .from("users").select("role").eq("id", user.id).single();
+  if (profile?.role !== "admin") throw new Error("Admin access required");
+
   const contributorId = formData.get("contributor_id") as string;
   const amount = parseFloat(formData.get("amount") as string);
   const payoutDate = formData.get("payout_date") as string;
   const periodDescription = formData.get("period_description") as string;
   const invoiceNumber = (formData.get("invoice_number") as string).trim() || null;
   const notes = (formData.get("notes") as string).trim() || null;
+
+  const parsed = RecordPayoutSchema.safeParse({
+    contributor_id:     contributorId,
+    amount,
+    payout_date:        payoutDate,
+    period_description: periodDescription,
+    invoice_number:     invoiceNumber,
+    notes,
+  });
+  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
 
   if (!contributorId || !amount || !payoutDate || !periodDescription) {
     throw new Error("All required fields must be filled");
@@ -27,7 +44,10 @@ export async function recordPayout(formData: FormData) {
     .select("id")
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[recordPayout] DB error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
 
   // Mark relevant paid licenses as paid_to_contributor = true and link to this payout
   // Strategy: mark all unpaid licenses for this contributor's fonts up to the payout amount

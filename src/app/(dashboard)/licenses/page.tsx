@@ -7,6 +7,9 @@ import { LicensePaymentBadge } from "@/components/licenses/license-payment-badge
 import { LicenseSourceBadge } from "@/components/licenses/license-source-badge";
 import { getLicenses, getActiveFonts } from "@/lib/data/queries";
 import { Input } from "@/components/ui/input";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { FilterBar } from "@/components/ui/filter-bar";
+import { SortableHeader } from "@/components/ui/sortable-header";
 import type { PaymentStatus, LicenseSource } from "@/types/database";
 
 interface PageProps {
@@ -15,6 +18,10 @@ interface PageProps {
     status?: string;
     source?: string;
     q?:      string;
+    from?:   string;
+    to?:     string;
+    sort?:   string;
+    order?:  string;
   }>;
 }
 
@@ -40,6 +47,10 @@ export default async function LicensesPage({ searchParams }: PageProps) {
       status: params.status,
       source: params.source,
       q:      params.q,
+      from:   params.from,
+      to:     params.to,
+      sort:   params.sort,
+      order:  params.order,
     }),
     getActiveFonts(),
   ]);
@@ -65,7 +76,7 @@ export default async function LicensesPage({ searchParams }: PageProps) {
       </div>
 
       {/* Filters */}
-      <form className="flex flex-wrap items-center gap-2">
+      <FilterBar>
         <Input
           name="q"
           placeholder="Search license #..."
@@ -102,13 +113,14 @@ export default async function LicensesPage({ searchParams }: PageProps) {
           <option value="enforcement">Enforcement</option>
           <option value="election_case">Election Case</option>
         </select>
+        <DateRangePicker fromParam="from" toParam="to" />
         <button
           type="submit"
-          className="h-8 rounded-md border border-input bg-background px-3 text-xs hover:bg-accent transition-colors"
+          className="h-8 rounded-md border border-input bg-background px-3 text-xs hover:bg-accent transition-colors group-[.is-dirty]:bg-primary group-[.is-dirty]:text-primary-foreground group-[.is-dirty]:border-primary"
         >
           Filter
         </button>
-        {(params.font || params.status || params.source || params.q) && (
+        {(params.font || params.status || params.source || params.q || params.from || params.to) && (
           <Link
             href="/licenses"
             className="h-8 flex items-center px-3 text-xs text-muted-foreground hover:text-foreground"
@@ -116,7 +128,7 @@ export default async function LicensesPage({ searchParams }: PageProps) {
             Clear
           </Link>
         )}
-      </form>
+      </FilterBar>
 
       {/* Table */}
       {licenses.length === 0 ? (
@@ -128,60 +140,75 @@ export default async function LicensesPage({ searchParams }: PageProps) {
           <table className="w-full min-w-[700px] text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40">
-                {["License #", "Buyer", "Font", "Date", "Amount", "Status", "Source", "QB"].map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-3.5 text-left text-xs font-medium text-muted-foreground"
-                  >
-                    {h}
-                  </th>
-                ))}
+                <SortableHeader column="license_number" label="License #" />
+                <th className="px-4 py-3.5 text-left text-xs font-medium text-muted-foreground">Buyer</th>
+                <th className="px-4 py-3.5 text-left text-xs font-medium text-muted-foreground">Font</th>
+                <SortableHeader column="purchase_date" label="Date" />
+                <SortableHeader column="invoice_amount" label="Amount" />
+                <SortableHeader column="payment_status" label="Status" />
+                <th className="px-4 py-3.5 text-left text-xs font-medium text-muted-foreground">Source</th>
+                <th className="px-4 py-3.5 text-left text-xs font-medium text-muted-foreground">QB</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {licenses.map((l) => (
                 <tr
                   key={l.id}
-                  className="group hover:bg-muted/20 transition-colors [&>td]:py-4"
+                  className="group hover:bg-muted/20 transition-colors cursor-pointer"
                 >
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/licenses/${l.id}`}
-                      className="font-mono text-xs font-medium text-primary hover:underline"
-                    >
-                      {l.license_number}
-                    </Link>
-                    {l.is_fine && (
-                      <span className="ml-1.5 rounded bg-red-100 px-1 py-0.5 text-[10px] font-medium text-red-700">
-                        FINE
+                  <td>
+                    <Link href={`/licenses/${l.id}`} className="flex items-center gap-1.5 px-4 py-4">
+                      <span className="font-mono text-xs font-medium text-primary">
+                        {l.license_number}
                       </span>
-                    )}
+                      {l.is_fine && (
+                        <span className="rounded bg-red-100 px-1 py-0.5 text-[10px] font-medium text-red-700">
+                          FINE
+                        </span>
+                      )}
+                    </Link>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="text-xs font-medium">{(l.buyer as any)?.name ?? "—"}</div>
-                    {(l.buyer as any)?.organization && (
-                      <div className="text-[10px] text-muted-foreground">
-                        {(l.buyer as any).organization}
-                      </div>
-                    )}
+                  <td>
+                    <Link href={`/licenses/${l.id}`} className="block px-4 py-4">
+                      <div className="text-xs font-medium">{(l.buyer as any)?.name ?? "—"}</div>
+                      {(l.buyer as any)?.organization && (
+                        <div className="text-[10px] text-muted-foreground">
+                          {(l.buyer as any).organization}
+                        </div>
+                      )}
+                    </Link>
                   </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">
-                    {(l.font as any)?.name ?? "—"}
+                  <td>
+                    <Link href={`/licenses/${l.id}`} className="block px-4 py-4 text-xs text-muted-foreground">
+                      {(l.font as any)?.name ?? "—"}
+                    </Link>
                   </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{l.purchase_date}</td>
-                  <td className="px-4 py-3 text-xs font-medium">{mvr(l.invoice_amount)}</td>
-                  <td className="px-4 py-3">
-                    <LicensePaymentBadge status={l.payment_status as PaymentStatus} />
+                  <td>
+                    <Link href={`/licenses/${l.id}`} className="block px-4 py-4 text-xs text-muted-foreground">
+                      {l.purchase_date}
+                    </Link>
                   </td>
-                  <td className="px-4 py-3">
-                    <LicenseSourceBadge source={l.source as LicenseSource} />
+                  <td>
+                    <Link href={`/licenses/${l.id}`} className="block px-4 py-4 text-xs font-medium">
+                      {mvr(l.invoice_amount)}
+                    </Link>
                   </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-xs ${l.qb_synced ? "text-emerald-600" : "text-muted-foreground"}`}
-                    >
-                      {l.qb_synced ? "✓" : "—"}
-                    </span>
+                  <td>
+                    <Link href={`/licenses/${l.id}`} className="block px-4 py-4">
+                      <LicensePaymentBadge status={l.payment_status as PaymentStatus} />
+                    </Link>
+                  </td>
+                  <td>
+                    <Link href={`/licenses/${l.id}`} className="block px-4 py-4">
+                      <LicenseSourceBadge source={l.source as LicenseSource} />
+                    </Link>
+                  </td>
+                  <td>
+                    <Link href={`/licenses/${l.id}`} className="block px-4 py-4">
+                      <span className={`text-xs ${l.qb_synced ? "text-emerald-600" : "text-muted-foreground"}`}>
+                        {l.qb_synced ? "✓" : "—"}
+                      </span>
+                    </Link>
                   </td>
                 </tr>
               ))}

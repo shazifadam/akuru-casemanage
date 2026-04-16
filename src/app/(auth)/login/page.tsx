@@ -6,6 +6,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { LottieLoader } from "@/components/ui/lottie-loader";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,6 +31,10 @@ export default function LoginPage() {
 
     router.push("/dashboard");
     router.refresh();
+  }
+
+  if (loading) {
+    return <LottieLoader fullScreen size={140} />;
   }
 
   return (

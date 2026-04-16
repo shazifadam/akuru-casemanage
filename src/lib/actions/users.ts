@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { UserRole } from "@/types/database";
+import { z } from "zod";
+import { CreateUserSchema } from "@/lib/validations";
 
 // ── Guard: only admins may call these actions ──────────────────────────────────
 async function requireAdmin() {
@@ -35,7 +37,10 @@ export async function listUsers(): Promise<{
 
   // Get auth users (email, last_sign_in_at)
   const { data: authData, error: authError } = await admin.auth.admin.listUsers();
-  if (authError) throw new Error(authError.message);
+  if (authError) {
+    console.error("[listUsers] Auth error:", authError.message);
+    throw new Error("Operation failed. Please try again.");
+  }
 
   // Get public.users (full_name, role)
   const supabase = await createClient();
@@ -62,18 +67,21 @@ export async function createUser(formData: FormData): Promise<{ tempPassword: st
   await requireAdmin();
   const admin = createAdminClient();
 
-  const email     = (formData.get("email") as string).trim().toLowerCase();
-  const full_name = (formData.get("full_name") as string).trim();
-  const role      = (formData.get("role") as UserRole) ?? "enforcer";
-
-  if (!email) throw new Error("Email is required");
-  if (!full_name) throw new Error("Full name is required");
+  const parsed = CreateUserSchema.safeParse({
+    email:     (formData.get("email") as string)?.trim().toLowerCase(),
+    full_name: (formData.get("full_name") as string)?.trim(),
+    role:      formData.get("role") ?? "enforcer",
+  });
+  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+  const email     = parsed.data.email;
+  const full_name = parsed.data.full_name;
+  const role      = parsed.data.role;
 
   // Generate a secure temporary password
+  const { randomBytes } = await import("crypto");
   const tempPassword =
-    Math.random().toString(36).slice(2, 8).toUpperCase() +
-    Math.random().toString(36).slice(2, 6) +
-    "!2";
+    randomBytes(9).toString("base64url") + // ~12 chars, URL-safe
+    "!A1"; // guaranteed special char + digit + uppercase for password policy
 
   const { data, error } = await admin.auth.admin.createUser({
     email,
@@ -82,7 +90,10 @@ export async function createUser(formData: FormData): Promise<{ tempPassword: st
     user_metadata: { full_name },
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[createUser] Auth error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
 
   // Upsert into public.users with desired role
   // (the trigger handle_new_user may have already created the row as 'enforcer')
@@ -109,7 +120,10 @@ export async function updateUserRole(userId: string, role: UserRole) {
     .update({ role })
     .eq("id", userId);
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[updateUserRole] DB error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
   revalidatePath("/settings");
 }
 
@@ -122,7 +136,10 @@ export async function updateUserName(userId: string, full_name: string) {
     .update({ full_name: full_name.trim() })
     .eq("id", userId);
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[updateUserName] DB error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
   revalidatePath("/settings");
 }
 
@@ -136,7 +153,10 @@ export async function deleteUser(userId: string) {
 
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.deleteUser(userId);
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[deleteUser] Auth error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
 
   revalidatePath("/settings");
 }

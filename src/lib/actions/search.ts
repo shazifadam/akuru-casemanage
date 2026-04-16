@@ -19,6 +19,8 @@ export async function globalSearch(
 
   const q = query.trim();
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
   const results: SearchResult[] = [];
 
   const all = typeFilter === "all";

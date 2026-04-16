@@ -105,34 +105,39 @@ export default async function ContributorsPage() {
               const bal  = balanceMap[c.id];
               const owed = bal?.balance_owed ?? 0;
               return (
-                <tr key={c.id} className="hover:bg-muted/20 transition-colors">
-                  <td className="px-5 py-4">
-                    <p className="font-medium text-foreground">{c.name}</p>
-                    {c.contact_email && (
-                      <p className="text-xs text-muted-foreground">{c.contact_email}</p>
-                    )}
+                <tr key={c.id} className="hover:bg-muted/20 transition-colors cursor-pointer">
+                  <td>
+                    <Link href={`/contributors/${c.id}`} className="block px-5 py-4">
+                      <p className="font-medium text-foreground">{c.name}</p>
+                      {c.contact_email && (
+                        <p className="text-xs text-muted-foreground">{c.contact_email}</p>
+                      )}
+                    </Link>
                   </td>
-                  <td className="px-5 py-4 text-xs text-muted-foreground">
-                    {c.share_percentage}% contributor / {100 - c.share_percentage}% Akuru Type
+                  <td>
+                    <Link href={`/contributors/${c.id}`} className="block px-5 py-4 text-xs text-muted-foreground">
+                      {c.share_percentage}% contributor / {100 - c.share_percentage}% Akuru Type
+                    </Link>
                   </td>
-                  <td className="px-5 py-4 text-sm font-medium">{mvr(bal?.total_earned ?? 0)}</td>
-                  <td className="px-5 py-4 text-sm text-emerald-700">
-                    {mvr(bal?.total_paid_out ?? 0)}
+                  <td>
+                    <Link href={`/contributors/${c.id}`} className="block px-5 py-4 text-sm font-medium">
+                      {mvr(bal?.total_earned ?? 0)}
+                    </Link>
                   </td>
-                  <td className="px-5 py-4">
-                    <span
-                      className={`text-sm font-semibold ${
-                        owed > 0 ? "text-amber-600" : "text-muted-foreground"
-                      }`}
-                    >
-                      {mvr(owed)}
-                    </span>
+                  <td>
+                    <Link href={`/contributors/${c.id}`} className="block px-5 py-4 text-sm text-emerald-700">
+                      {mvr(bal?.total_paid_out ?? 0)}
+                    </Link>
                   </td>
-                  <td className="px-5 py-4">
-                    <Link
-                      href={`/contributors/${c.id}`}
-                      className="flex items-center gap-1 text-xs text-primary hover:underline"
-                    >
+                  <td>
+                    <Link href={`/contributors/${c.id}`} className="block px-5 py-4">
+                      <span className={`text-sm font-semibold ${owed > 0 ? "text-amber-600" : "text-muted-foreground"}`}>
+                        {mvr(owed)}
+                      </span>
+                    </Link>
+                  </td>
+                  <td>
+                    <Link href={`/contributors/${c.id}`} className="flex items-center gap-1 px-5 py-4 text-xs text-primary">
                       View <ArrowRight className="h-3 w-3" />
                     </Link>
                   </td>

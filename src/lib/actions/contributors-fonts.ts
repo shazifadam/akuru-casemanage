@@ -3,6 +3,11 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { CommissionModel, FontStatus, ContributorStatus } from "@/types/database";
+import { z } from "zod";
+import {
+  CreateContributorSchema, UpdateContributorSchema,
+  CreateFontSchema, UpdateFontSchema,
+} from "@/lib/validations";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -26,14 +31,24 @@ async function requireAdmin() {
 export async function createContributor(formData: FormData) {
   const supabase = await requireAdmin();
 
-  const { error } = await supabase.from("contributors").insert({
-    name: (formData.get("name") as string).trim(),
-    contact_email: (formData.get("contact_email") as string)?.trim() || null,
+  const parsed = CreateContributorSchema.safeParse({
+    name:             (formData.get("name") as string)?.trim(),
+    contact_email:    (formData.get("contact_email") as string)?.trim() || null,
     share_percentage: parseFloat(formData.get("share_percentage") as string) || 50,
+  });
+  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+
+  const { error } = await supabase.from("contributors").insert({
+    name: parsed.data.name,
+    contact_email: parsed.data.contact_email ?? null,
+    share_percentage: parsed.data.share_percentage,
     status: "active",
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[createContributor] DB error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
   revalidatePath("/settings");
   revalidatePath("/contributors");
   revalidateTag("contributors");
@@ -42,17 +57,28 @@ export async function createContributor(formData: FormData) {
 export async function updateContributor(contributorId: string, formData: FormData) {
   const supabase = await requireAdmin();
 
+  const parsed = UpdateContributorSchema.safeParse({
+    name:             (formData.get("name") as string)?.trim(),
+    contact_email:    (formData.get("contact_email") as string)?.trim() || null,
+    share_percentage: parseFloat(formData.get("share_percentage") as string) || 50,
+    status:           formData.get("status"),
+  });
+  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+
   const { error } = await supabase
     .from("contributors")
     .update({
-      name: (formData.get("name") as string).trim(),
-      contact_email: (formData.get("contact_email") as string)?.trim() || null,
-      share_percentage: parseFloat(formData.get("share_percentage") as string) || 50,
-      status: formData.get("status") as ContributorStatus,
+      name: parsed.data.name,
+      contact_email: parsed.data.contact_email ?? null,
+      share_percentage: parsed.data.share_percentage,
+      status: parsed.data.status as ContributorStatus,
     })
     .eq("id", contributorId);
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[updateContributor] DB error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
   revalidatePath("/settings");
   revalidatePath("/contributors");
   revalidateTag("contributors");
@@ -64,7 +90,10 @@ export async function deleteContributor(contributorId: string) {
     .from("contributors")
     .delete()
     .eq("id", contributorId);
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[deleteContributor] DB error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
   revalidatePath("/settings");
   revalidatePath("/contributors");
   revalidateTag("contributors");
@@ -75,18 +104,30 @@ export async function deleteContributor(contributorId: string) {
 export async function createFont(formData: FormData) {
   const supabase = await requireAdmin();
 
+  const parsed = CreateFontSchema.safeParse({
+    name:                  (formData.get("name") as string)?.trim(),
+    contributor_id:        formData.get("contributor_id"),
+    base_price:            parseFloat(formData.get("base_price") as string),
+    contributor_share_pct: parseFloat(formData.get("contributor_share_pct") as string),
+    commission_model:      formData.get("commission_model") ?? "contributor_owned",
+    gst_rate:              parseFloat(formData.get("gst_rate") as string),
+  });
+  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+
   const { error } = await supabase.from("fonts").insert({
-    name: (formData.get("name") as string).trim(),
-    contributor_id: formData.get("contributor_id") as string,
-    base_price: parseFloat(formData.get("base_price") as string) || 0,
-    contributor_share_pct: parseFloat(formData.get("contributor_share_pct") as string) || 50,
-    commission_model:
-      (formData.get("commission_model") as CommissionModel) || "contributor_owned",
-    gst_rate: parseFloat(formData.get("gst_rate") as string) || 0.08,
+    name: parsed.data.name,
+    contributor_id: parsed.data.contributor_id,
+    base_price: parsed.data.base_price,
+    contributor_share_pct: parsed.data.contributor_share_pct,
+    commission_model: parsed.data.commission_model as CommissionModel,
+    gst_rate: parsed.data.gst_rate,
     status: "active",
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[createFont] DB error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
   revalidatePath("/settings");
   revalidatePath("/licenses/new");
   revalidatePath("/cases/new");
@@ -96,21 +137,34 @@ export async function createFont(formData: FormData) {
 export async function updateFont(fontId: string, formData: FormData) {
   const supabase = await requireAdmin();
 
+  const parsed = UpdateFontSchema.safeParse({
+    name:                  (formData.get("name") as string)?.trim(),
+    contributor_id:        formData.get("contributor_id"),
+    base_price:            parseFloat(formData.get("base_price") as string),
+    contributor_share_pct: parseFloat(formData.get("contributor_share_pct") as string),
+    commission_model:      formData.get("commission_model"),
+    gst_rate:              parseFloat(formData.get("gst_rate") as string),
+    status:                formData.get("status"),
+  });
+  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+
   const { error } = await supabase
     .from("fonts")
     .update({
-      name: (formData.get("name") as string).trim(),
-      contributor_id: formData.get("contributor_id") as string,
-      base_price: parseFloat(formData.get("base_price") as string) || 0,
-      contributor_share_pct:
-        parseFloat(formData.get("contributor_share_pct") as string) || 50,
-      commission_model: formData.get("commission_model") as CommissionModel,
-      gst_rate: parseFloat(formData.get("gst_rate") as string) || 0.08,
-      status: formData.get("status") as FontStatus,
+      name: parsed.data.name,
+      contributor_id: parsed.data.contributor_id,
+      base_price: parsed.data.base_price,
+      contributor_share_pct: parsed.data.contributor_share_pct,
+      commission_model: parsed.data.commission_model as CommissionModel,
+      gst_rate: parsed.data.gst_rate,
+      status: parsed.data.status as FontStatus,
     })
     .eq("id", fontId);
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[updateFont] DB error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
   revalidatePath("/settings");
   revalidatePath("/licenses/new");
   revalidateTag("fonts");
@@ -119,7 +173,10 @@ export async function updateFont(fontId: string, formData: FormData) {
 export async function deleteFont(fontId: string) {
   const supabase = await requireAdmin();
   const { error } = await supabase.from("fonts").delete().eq("id", fontId);
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[deleteFont] DB error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
   revalidatePath("/settings");
   revalidatePath("/licenses/new");
   revalidateTag("fonts");

@@ -17,6 +17,10 @@ interface PageProps {
     party?:    string;
     q?:        string;
     view?:     string;
+    from?:     string;
+    to?:       string;
+    sort?:     string;
+    order?:    string;
   }>;
 }
 
@@ -43,6 +47,10 @@ export default async function CasesPage({ searchParams }: PageProps) {
       font:     params.font,
       party:    params.party,
       q:        params.q,
+      from:     params.from,
+      to:       params.to,
+      sort:     params.sort,
+      order:    params.order,
     }),
     getActiveFonts(),
   ]);

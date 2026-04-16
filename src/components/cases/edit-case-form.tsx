@@ -17,6 +17,7 @@ import { Loader2 } from "lucide-react";
 import { updateCase } from "@/lib/actions/cases";
 import { USAGE_CONTEXT_LABELS, CASE_PRIORITY_LABELS } from "@/types/database";
 import type { UsageContext, CasePriority, DbCase } from "@/types/database";
+import { BuyerCombobox } from "@/components/cases/buyer-combobox";
 
 interface Font { id: string; name: string }
 interface Buyer { id: string; name: string; organization: string | null }
@@ -32,7 +33,7 @@ export function EditCaseForm({ caseData, fonts, buyers }: EditCaseFormProps) {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const [buyerId, setBuyerId] = useState(caseData.buyer_id ?? "none");
+  const [buyerId, setBuyerId] = useState(caseData.buyer_id ?? "");
   const [priority, setPriority] = useState<CasePriority>(caseData.priority);
   const [usageContext, setUsageContext] = useState<UsageContext | "none">(
     caseData.usage_context ?? "none"
@@ -44,7 +45,7 @@ export function EditCaseForm({ caseData, fonts, buyers }: EditCaseFormProps) {
 
     const form = e.currentTarget;
     const formData = new FormData(form);
-    formData.set("buyer_id", buyerId === "none" ? "" : buyerId);
+    formData.set("buyer_id", buyerId);
     formData.set("priority", priority);
     formData.set("usage_context", usageContext === "none" ? "" : usageContext);
 
@@ -82,19 +83,11 @@ export function EditCaseForm({ caseData, fonts, buyers }: EditCaseFormProps) {
 
         <div className="space-y-1.5">
           <Label>Buyer</Label>
-          <Select value={buyerId} onValueChange={setBuyerId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select buyer" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">None</SelectItem>
-              {buyers.map((b) => (
-                <SelectItem key={b.id} value={b.id}>
-                  {b.name}{b.organization ? ` — ${b.organization}` : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <BuyerCombobox
+            buyers={buyers}
+            value={buyerId}
+            onChange={(id) => setBuyerId(id)}
+          />
         </div>
       </div>
 

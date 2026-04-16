@@ -103,10 +103,10 @@ export default async function DashboardPage() {
       href:        "/buyers",
     },
     {
-      label:       "Revenue (MTD)",
+      label:       "Akuru Revenue (MTD)",
       value:       mvr(revenueMtd),
       icon:        TrendingUp,
-      description: `Paid invoices — ${now.toLocaleString("en-MV", { month: "long" })} ${now.getFullYear()}`,
+      description: `Akuru share from paid licenses — ${now.toLocaleString("en-MV", { month: "long" })} ${now.getFullYear()}`,
       color:       "text-amber-600",
       bg:          "bg-amber-50",
       href:        "/reports",

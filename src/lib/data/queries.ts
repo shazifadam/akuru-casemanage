@@ -97,6 +97,10 @@ export interface CasesQueryParams {
   font?:     string;
   party?:    string;
   q?:        string;
+  from?:     string;
+  to?:       string;
+  sort?:     string;
+  order?:    string;
 }
 
 export const getCases = unstable_cache(
@@ -108,8 +112,7 @@ export const getCases = unstable_cache(
         font:fonts(id, name),
         buyer:buyers(id, name, organization),
         identified_by_user:users(id, full_name)`
-      )
-      .order("created_at", { ascending: false });
+      );
 
     if (params.status)   query = query.eq("status",   params.status as CaseStatus);
     if (params.priority) query = query.eq("priority", params.priority as CasePriority);
@@ -119,6 +122,12 @@ export const getCases = unstable_cache(
       query = query.or(
         `title.ilike.%${params.q}%,usage_description.ilike.%${params.q}%,constituency.ilike.%${params.q}%`
       );
+    if (params.from) query = query.gte("identified_date", params.from);
+    if (params.to)   query = query.lte("identified_date", params.to);
+
+    const allowedCaseSortCols = ["identified_date", "priority", "status", "created_at"];
+    const caseSortCol = allowedCaseSortCols.includes(params.sort ?? "") ? params.sort! : "created_at";
+    query = query.order(caseSortCol, { ascending: params.order !== "desc" });
 
     const { data } = await query;
     return data ?? [];
@@ -134,6 +143,10 @@ export interface LicensesQueryParams {
   status?: string;
   source?: string;
   q?:      string;
+  from?:   string;
+  to?:     string;
+  sort?:   string;
+  order?:  string;
 }
 
 export const getLicenses = unstable_cache(
@@ -144,13 +157,18 @@ export const getLicenses = unstable_cache(
         `*,
         buyer:buyers(id, name, organization),
         font:fonts(id, name, contributor_id, contributor:contributors(id, name))`
-      )
-      .order("created_at", { ascending: false });
+      );
 
     if (params.font)   query = query.eq("font_id",        params.font);
     if (params.status) query = query.eq("payment_status", params.status as PaymentStatus);
     if (params.source) query = query.eq("source",         params.source as LicenseSource);
     if (params.q)      query = query.ilike("license_number", `%${params.q}%`);
+    if (params.from)   query = query.gte("purchase_date", params.from);
+    if (params.to)     query = query.lte("purchase_date", params.to);
+
+    const allowedLicenseSortCols = ["purchase_date", "invoice_amount", "payment_status", "license_number"];
+    const licSortCol = allowedLicenseSortCols.includes(params.sort ?? "") ? params.sort! : "created_at";
+    query = query.order(licSortCol, { ascending: params.order !== "desc" });
 
     const { data } = await query;
     return data ?? [];
@@ -162,19 +180,28 @@ export const getLicenses = unstable_cache(
 // ── Buyers ────────────────────────────────────────────────────────────────────
 
 export interface BuyersQueryParams {
-  q?:    string;
-  type?: string;
+  q?:     string;
+  type?:  string;
+  from?:  string;
+  to?:    string;
+  sort?:  string;
+  order?: string;
 }
 
 export const getBuyers = unstable_cache(
   async (params: BuyersQueryParams) => {
     let query = cacheDb
       .from("buyers")
-      .select("id, name, organization, email, buyer_type, created_at")
-      .order("name");
+      .select("id, name, organization, email, buyer_type, created_at");
 
     if (params.q)    query = query.ilike("name", `%${params.q}%`);
     if (params.type) query = query.eq("buyer_type", params.type as BuyerType);
+    if (params.from) query = query.gte("created_at", params.from + "T00:00:00Z");
+    if (params.to)   query = query.lte("created_at", params.to + "T23:59:59Z");
+
+    const allowedBuyerSortCols = ["name", "created_at"];
+    const buyerSortCol = allowedBuyerSortCols.includes(params.sort ?? "") ? params.sort! : "name";
+    query = query.order(buyerSortCol, { ascending: params.order !== "desc" });
 
     const { data } = await query;
     return data ?? [];
@@ -253,7 +280,7 @@ export const getDashboardData = unstable_cache(
       cacheDb.from("cases").select("id, status, identified_date, resolved_date, updated_at"),
       cacheDb
         .from("licenses")
-        .select("id, invoice_amount, payment_status, purchase_date"),
+        .select("id, invoice_amount, akuru_share, gst_amount, contributor_share, payment_status, purchase_date"),
       cacheDb.from("buyers").select("id", { count: "exact", head: true }),
       cacheDb
         .from("contributor_balances")
@@ -282,9 +309,10 @@ export const getDashboardData = unstable_cache(
             .in("id", caseIds)
         : { data: [] };
 
+    // Revenue = Akuru's share only (excl. GST and contributor share)
     const revenueMtd = (licenses ?? [])
       .filter((l) => l.payment_status === "paid" && l.purchase_date >= mtdStart)
-      .reduce((s, l) => s + (l.invoice_amount ?? 0), 0);
+      .reduce((s, l) => s + (l.akuru_share ?? 0), 0);
 
     const pipelineCounts: Record<string, number> = {};
     for (const c of casesRaw ?? []) {
