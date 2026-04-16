@@ -40,7 +40,9 @@ export function AdjustmentsPanel({ adjustments, isAdmin }: AdjustmentsPanelProps
 
   // Separate transitions so create pending doesn't block delete buttons
   const [isSaving,   startSave]   = useTransition();
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isDeleting, startDelete] = useTransition();
+  const [deletingId,  setDeletingId]  = useState<string | null>(null); // currently being deleted
+  const [confirmId,   setConfirmId]   = useState<string | null>(null); // awaiting tap-to-confirm
 
   // Form state
   const [amount,    setAmount]    = useState("");
@@ -69,17 +71,24 @@ export function AdjustmentsPanel({ adjustments, isAdmin }: AdjustmentsPanelProps
     });
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("Delete this adjustment? This cannot be undone.")) return;
-    setDeletingId(id);
-    const result = await deleteAdjustment(id);
-    setDeletingId(null);
-    if (result.success) {
-      toast.success("Adjustment deleted");
-      router.refresh();
-    } else {
-      toast.error(result.error);
+  function handleDelete(id: string) {
+    // First click → show "Confirm?" state; second click → actually delete
+    if (confirmId !== id) {
+      setConfirmId(id);
+      return;
     }
+    setConfirmId(null);
+    setDeletingId(id);
+    startDelete(async () => {
+      const result = await deleteAdjustment(id);
+      setDeletingId(null);
+      if (result.success) {
+        toast.success("Adjustment deleted");
+        router.refresh();
+      } else {
+        toast.error(result.error);
+      }
+    });
   }
 
   return (
@@ -147,18 +156,39 @@ export function AdjustmentsPanel({ adjustments, isAdmin }: AdjustmentsPanelProps
                       </td>
                       <td className="px-4 py-2.5">
                         {isAdmin && (
-                          <button
-                            onClick={() => handleDelete(a.id)}
-                            disabled={deletingId === a.id}
-                            className="p-1 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-40"
-                            title="Delete adjustment"
-                          >
-                            {deletingId === a.id
-                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              : <Trash2 className="h-3.5 w-3.5" />
-                            }
-                          </button>
-                        )}
+                        <div className="flex items-center gap-1">
+                          {confirmId === a.id && (
+                            <>
+                              <button
+                                onClick={() => setConfirmId(null)}
+                                className="px-1.5 py-0.5 rounded text-[10px] border border-input hover:bg-accent"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => handleDelete(a.id)}
+                                disabled={deletingId === a.id}
+                                className="px-1.5 py-0.5 rounded text-[10px] bg-red-600 text-white hover:bg-red-700 disabled:opacity-40"
+                              >
+                                Confirm
+                              </button>
+                            </>
+                          )}
+                          {confirmId !== a.id && (
+                            <button
+                              onClick={() => handleDelete(a.id)}
+                              disabled={deletingId === a.id}
+                              className="p-1 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-40"
+                              title="Delete"
+                            >
+                              {deletingId === a.id
+                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                : <Trash2 className="h-3.5 w-3.5" />
+                              }
+                            </button>
+                          )}
+                        </div>
+                      )}
                       </td>
                     </tr>
                   ))}
