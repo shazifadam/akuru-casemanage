@@ -106,8 +106,8 @@ export async function recordPayout(input: {
       return sum + share;
     }, 0);
 
-    if (amount <= 0) {
-      return { success: false, error: "Total payout amount must be greater than zero." };
+    if (amount < 0) {
+      return { success: false, error: "Total payout amount cannot be negative." };
     }
 
     // ── Auto-generate period_description from license dates ───────────────────
