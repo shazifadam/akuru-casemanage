@@ -36,7 +36,7 @@ export async function createContributor(formData: FormData) {
     contact_email:    (formData.get("contact_email") as string)?.trim() || null,
     share_percentage: parseFloat(formData.get("share_percentage") as string) || 50,
   });
-  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
   const { error } = await supabase.from("contributors").insert({
     name: parsed.data.name,
@@ -63,7 +63,7 @@ export async function updateContributor(contributorId: string, formData: FormDat
     share_percentage: parseFloat(formData.get("share_percentage") as string) || 50,
     status:           formData.get("status"),
   });
-  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
   const { error } = await supabase
     .from("contributors")
@@ -112,7 +112,7 @@ export async function createFont(formData: FormData) {
     commission_model:      formData.get("commission_model") ?? "contributor_owned",
     gst_rate:              parseFloat(formData.get("gst_rate") as string),
   });
-  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
   const { error } = await supabase.from("fonts").insert({
     name: parsed.data.name,
@@ -146,7 +146,7 @@ export async function updateFont(fontId: string, formData: FormData) {
     gst_rate:              parseFloat(formData.get("gst_rate") as string),
     status:                formData.get("status"),
   });
-  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
   const { error } = await supabase
     .from("fonts")

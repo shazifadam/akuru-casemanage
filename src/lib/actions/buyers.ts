@@ -20,7 +20,7 @@ export async function createBuyer(formData: FormData) {
     buyer_type:   formData.get("buyer_type"),
     notes:        (formData.get("notes") as string)?.trim() || null,
   });
-  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
   // Normalize name
   const rawName = parsed.data.name.trim();
@@ -66,7 +66,7 @@ export async function updateBuyer(buyerId: string, formData: FormData) {
     buyer_type:   formData.get("buyer_type"),
     notes:        (formData.get("notes") as string)?.trim() || null,
   });
-  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
   const rawName = parsed.data.name.trim();
   const name = rawName

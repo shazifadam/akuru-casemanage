@@ -32,7 +32,7 @@ export async function createCase(formData: FormData) {
     party:             (formData.get("party") as string) || null,
     buyer_id:          (formData.get("buyer_id") as string) || null,
   });
-  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
   const payload = {
     title: parsed.data.title,
@@ -90,7 +90,7 @@ export async function updateCase(caseId: string, formData: FormData) {
     party:             (formData.get("party") as string) || null,
     buyer_id:          (formData.get("buyer_id") as string) || null,
   });
-  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
   const payload = {
     title: parsed.data.title,
@@ -188,7 +188,7 @@ export async function addCaseComment(caseId: string, comment: string) {
   if (!user) throw new Error("Not authenticated");
 
   const parsed = AddCommentSchema.safeParse({ comment });
-  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
   const { error } = await supabase.from("case_activity_log").insert({
     case_id: caseId,
@@ -218,7 +218,7 @@ export async function addCaseEvidence(
   if (!user) throw new Error("Not authenticated");
 
   const parsed = AddEvidenceSchema.safeParse({ attachmentUrl, comment });
-  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
   const { error } = await supabase.from("case_activity_log").insert({
     case_id: caseId,

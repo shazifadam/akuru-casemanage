@@ -26,7 +26,7 @@ export async function createLicense(formData: FormData) {
     source:         formData.get("source") ?? "direct_sale",
     case_id:        (formData.get("case_id") as string) || null,
   });
-  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
   const payload = {
     buyer_id: parsed.data.buyer_id,
@@ -75,7 +75,7 @@ export async function updateLicense(licenseId: string, formData: FormData) {
     is_fine:        isFine,
     source:         formData.get("source"),
   });
-  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
   const { error } = await supabase
     .from("licenses")

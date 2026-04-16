@@ -72,7 +72,7 @@ export async function createUser(formData: FormData): Promise<{ tempPassword: st
     full_name: (formData.get("full_name") as string)?.trim(),
     role:      formData.get("role") ?? "enforcer",
   });
-  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
   const email     = parsed.data.email;
   const full_name = parsed.data.full_name;
   const role      = parsed.data.role;

@@ -31,7 +31,7 @@ export async function recordPayout(formData: FormData) {
     invoice_number:     invoiceNumber,
     notes,
   });
-  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
   if (!contributorId || !amount || !payoutDate || !periodDescription) {
     throw new Error("All required fields must be filled");
