@@ -19,7 +19,7 @@ export function LicenseActions({ licenseId, currentStatus, qbSynced, isAdmin }: 
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  function handle(fn: () => Promise<void>) {
+  function handle(fn: () => Promise<{ success: boolean; error?: string } | void>) {
     startTransition(async () => { await fn(); router.refresh(); });
   }
 

@@ -30,10 +30,12 @@ interface EditLicenseFormProps {
 }
 
 function mvr(n: number) {
-  return `MVR ${n.toLocaleString("en-MV", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  const num = typeof n === "number" && isFinite(n) ? n : 0;
+  try {
+    return `MVR ${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  } catch {
+    return `MVR ${num.toFixed(2)}`;
+  }
 }
 
 export function EditLicenseForm({ license, fonts, buyers }: EditLicenseFormProps) {
@@ -82,12 +84,12 @@ export function EditLicenseForm({ license, fonts, buyers }: EditLicenseFormProps
     formData.set("purchase_date", purchaseDateInput.value);
 
     startTransition(async () => {
-      try {
-        await updateLicense(license.id, formData);
+      const result = await updateLicense(license.id, formData);
+      if (result.success) {
         router.push(`/licenses/${license.id}`);
         router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to update license");
+      } else {
+        setError(result.error);
       }
     });
   }
