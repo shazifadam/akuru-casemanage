@@ -12,9 +12,9 @@ const optionalUuid = z.string().uuid("Invalid ID format").nullable().optional();
 const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format");
-const positiveNumber = z.number({ invalid_type_error: "Must be a number" }).positive("Must be greater than zero");
+const positiveNumber = z.number().positive("Must be greater than zero");
 const percentageField = z
-  .number({ invalid_type_error: "Must be a number" })
+  .number()
   .min(0, "Cannot be negative")
   .max(100, "Cannot exceed 100%");
 const httpsUrl = z
@@ -132,7 +132,7 @@ export const CreateFontSchema = z.object({
   contributor_share_pct: percentageField,
   commission_model:      CommissionModelEnum,
   gst_rate:              z
-    .number({ invalid_type_error: "Must be a number" })
+    .number()
     .min(0, "Cannot be negative")
     .max(0.99, "GST rate must be less than 1"),
 });
