@@ -138,6 +138,35 @@ export async function updatePaymentStatus(licenseId: string, status: PaymentStat
   revalidateTag("licenses");
 }
 
+// ── Bulk toggle QB synced (admin only) ────────────────────────────────────────
+export async function bulkToggleQbSynced(ids: string[], value: boolean) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: profile } = await supabase
+    .from("users").select("role").eq("id", user.id).single();
+  if (profile?.role !== "admin") throw new Error("Admin access required");
+
+  // Validate: max 200 items, all must be valid UUIDs
+  if (!ids.length || ids.length > 200) throw new Error("Invalid selection");
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!ids.every((id) => uuidRegex.test(id))) throw new Error("Invalid ID format");
+
+  const { error } = await supabase
+    .from("licenses")
+    .update({ qb_synced: value })
+    .in("id", ids);
+
+  if (error) {
+    console.error("[bulkToggleQbSynced] DB error:", error.message);
+    throw new Error("Operation failed. Please try again.");
+  }
+
+  revalidatePath("/licenses");
+  revalidateTag("licenses");
+}
+
 // ── Delete a license (admin only) ──────────────────────────────────────────────
 export async function deleteLicense(licenseId: string) {
   const supabase = await createClient();
