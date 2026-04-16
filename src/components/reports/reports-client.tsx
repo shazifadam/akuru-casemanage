@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Download, BarChart2, PieChart, Users, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AdjustmentsPanel } from "./adjustments-panel";
+import type { FinancialAdjustment } from "@/lib/actions/adjustments";
 
 function mvr(n: number) {
   return `MVR ${(n ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -75,6 +77,8 @@ export interface ReportsData {
   totalAkuruShare: number;
   totalContributorShare: number;
   allTimeCount: number;
+  adjustments: FinancialAdjustment[];
+  isAdmin: boolean;
 }
 
 // ── Tab components ────────────────────────────────────────────────────────────
@@ -322,19 +326,42 @@ type TabId = typeof TABS[number]["id"];
 export function ReportsClient({ data }: { data: ReportsData }) {
   const [activeTab, setActiveTab] = useState<TabId>("monthly");
 
+  // Apply adjustments to base totals
+  const adj = data.adjustments ?? [];
+  function applyAdj(base: number, target: FinancialAdjustment["target"]) {
+    return adj
+      .filter((a) => a.target === target)
+      .reduce((s, a) => s + (a.direction === "add" ? a.amount : -a.amount), base);
+  }
+  const adjRevenue           = applyAdj(data.totalRevenue,           "revenue");
+  const adjGst               = applyAdj(data.totalGst,               "gst");
+  const adjContributorShare  = applyAdj(data.totalContributorShare,  "contributor_share");
+  const adjAkuruShare        = applyAdj(data.totalAkuruShare,        "akuru_share");
+
+  const hasAdj = (target: FinancialAdjustment["target"]) =>
+    adj.some((a) => a.target === target);
+
   return (
     <div className="space-y-6">
       {/* Summary bar */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
-          { label: "Total Revenue (All Time)", value: mvr(data.totalRevenue), color: "text-foreground" },
-          { label: "Total GST Collected",       value: mvr(data.totalGst),          color: "text-muted-foreground" },
-          { label: "Contributor Share (Total)", value: mvr(data.totalContributorShare), color: "text-emerald-700" },
-          { label: "Akuru Type Share (Total)",  value: mvr(data.totalAkuruShare),   color: "text-blue-700" },
+          { label: "Total Revenue",       value: adjRevenue,          base: data.totalRevenue,          color: "text-foreground",       target: "revenue"           as const },
+          { label: "Total GST Collected", value: adjGst,              base: data.totalGst,              color: "text-muted-foreground", target: "gst"               as const },
+          { label: "Contributor Share",   value: adjContributorShare, base: data.totalContributorShare, color: "text-emerald-700",      target: "contributor_share" as const },
+          { label: "Akuru Type Share",    value: adjAkuruShare,       base: data.totalAkuruShare,       color: "text-blue-700",         target: "akuru_share"       as const },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border border-border bg-card p-4 text-center">
-            <p className={`text-xl font-bold tabular-nums ${s.color}`}>{s.value}</p>
+            <p className={`text-xl font-bold tabular-nums ${s.color}`}>{mvr(s.value)}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+            {hasAdj(s.target) && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                base {mvr(s.base)}
+                <span className={`ml-1 font-medium ${s.value >= s.base ? "text-emerald-600" : "text-red-600"}`}>
+                  {s.value >= s.base ? "+" : ""}{mvr(s.value - s.base)} adj
+                </span>
+              </p>
+            )}
           </div>
         ))}
       </div>
@@ -364,6 +391,9 @@ export function ReportsClient({ data }: { data: ReportsData }) {
           {activeTab === "enforcement" && <EnforcementTab  data={data.enforcement} />}
         </div>
       </div>
+
+      {/* Adjustments — sits at the bottom, collapsed by default */}
+      <AdjustmentsPanel adjustments={data.adjustments} isAdmin={data.isAdmin} />
     </div>
   );
 }

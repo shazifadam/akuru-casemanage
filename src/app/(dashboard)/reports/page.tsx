@@ -168,6 +168,19 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   const totalContributorShare = paid.reduce((s, l) => s + (l.contributor_share ?? 0), 0);
   const totalAkuruShare = paid.reduce((s, l) => s + (l.akuru_share ?? 0), 0);
 
+  // ── Financial adjustments ─────────────────────────────────────────────────
+  const { data: adjustmentsRaw } = await supabase
+    .from("financial_adjustments")
+    .select("id, amount, direction, target, reason, entry_date, created_at")
+    .order("entry_date", { ascending: false });
+
+  // ── Current user role ─────────────────────────────────────────────────────
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: profile } = user
+    ? await supabase.from("users").select("role").eq("id", user.id).single()
+    : { data: null };
+  const isAdmin = profile?.role === "admin";
+
   const reportsData: ReportsData = {
     monthly,
     byFont,
@@ -178,6 +191,8 @@ export default async function ReportsPage({ searchParams }: PageProps) {
     totalAkuruShare,
     totalContributorShare,
     allTimeCount: paid.length,
+    adjustments: (adjustmentsRaw ?? []) as any,
+    isAdmin,
   };
 
   return (
