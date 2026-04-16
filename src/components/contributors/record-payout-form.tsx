@@ -29,17 +29,18 @@ export function RecordPayoutForm({ contributorId, contributorName, currentBalanc
     e.preventDefault();
     setError(null);
     setSuccess(false);
-    const formData = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
     formData.set("contributor_id", contributorId);
 
     startTransition(async () => {
-      try {
-        await recordPayout(formData);
+      const result = await recordPayout(formData);
+      if (result.success) {
         setSuccess(true);
-        (e.target as HTMLFormElement).reset();
+        form.reset();
         router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to record payout");
+      } else {
+        setError(result.error);
       }
     });
   }
