@@ -126,7 +126,7 @@ export const getCases = unstable_cache(
     if (params.to)   query = query.lte("identified_date", params.to);
 
     const allowedCaseSortCols = ["identified_date", "priority", "status", "created_at"];
-    const caseSortCol = allowedCaseSortCols.includes(params.sort ?? "") ? params.sort! : "created_at";
+    const caseSortCol = allowedCaseSortCols.includes(params.sort ?? "") ? params.sort! : "identified_date";
     query = query.order(caseSortCol, { ascending: params.order === "asc" });
 
     const { data } = await query;
@@ -167,7 +167,7 @@ export const getLicenses = unstable_cache(
     if (params.to)     query = query.lte("purchase_date", params.to);
 
     const allowedLicenseSortCols = ["purchase_date", "invoice_amount", "payment_status", "license_number"];
-    const licSortCol = allowedLicenseSortCols.includes(params.sort ?? "") ? params.sort! : "created_at";
+    const licSortCol = allowedLicenseSortCols.includes(params.sort ?? "") ? params.sort! : "purchase_date";
     query = query.order(licSortCol, { ascending: params.order === "asc" });
 
     const { data } = await query;
