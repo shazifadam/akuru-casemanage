@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,14 +15,18 @@ interface RecordPayoutFormProps {
 }
 
 function mvr(n: number) {
-  return `MVR ${(n ?? 0).toLocaleString("en-MV", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const num = typeof n === "number" && isFinite(n) ? n : 0;
+  try {
+    return `MVR ${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  } catch {
+    return `MVR ${num.toFixed(2)}`;
+  }
 }
 
 export function RecordPayoutForm({ contributorId, contributorName, currentBalance }: RecordPayoutFormProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -38,7 +41,11 @@ export function RecordPayoutForm({ contributorId, contributorName, currentBalanc
       if (result.success) {
         setSuccess(true);
         form.reset();
-        router.refresh();
+        // Give the user a moment to see the success message,
+        // then do a hard reload so balances and payout history refresh from the DB.
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
         setError(result.error);
       }
@@ -86,9 +93,13 @@ export function RecordPayoutForm({ contributorId, contributorName, currentBalanc
         </div>
 
         {error && <p className="text-xs text-destructive">{error}</p>}
-        {success && <p className="text-xs text-emerald-600">✓ Payout recorded and licenses marked as paid.</p>}
+        {success && (
+          <p className="text-xs text-emerald-600">
+            ✓ Payout recorded! Refreshing page…
+          </p>
+        )}
 
-        <Button type="submit" size="sm" className="w-full" disabled={isPending}>
+        <Button type="submit" size="sm" className="w-full" disabled={isPending || success}>
           {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           Record Payout to {contributorName}
         </Button>
