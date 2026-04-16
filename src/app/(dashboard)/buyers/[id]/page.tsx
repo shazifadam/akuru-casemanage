@@ -11,7 +11,7 @@ import type { BuyerType, PaymentStatus, CaseStatus } from "@/types/database";
 interface PageProps { params: Promise<{ id: string }> }
 
 function mvr(n: number) {
-  return `MVR ${n.toLocaleString("en-MV", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `MVR ${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export default async function BuyerProfilePage({ params }: PageProps) {

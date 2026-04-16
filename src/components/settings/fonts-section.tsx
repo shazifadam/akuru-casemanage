@@ -33,14 +33,14 @@ export function FontsSection({ fonts, contributors }: FontsSectionProps) {
   const [newContribId, setNewContribId] = useState("");
   const [error, setError]             = useState<string | null>(null);
 
-  function run(fn: () => Promise<void>) {
+  function run(fn: () => Promise<{ success: true } | { success: false; error: string }>) {
     setError(null);
     startTransition(async () => {
-      try {
-        await fn();
+      const result = await fn();
+      if (result.success) {
         router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Operation failed");
+      } else {
+        setError(result.error);
       }
     });
   }
@@ -49,10 +49,13 @@ export function FontsSection({ fonts, contributors }: FontsSectionProps) {
     e.preventDefault();
     const form = e.currentTarget;
     run(async () => {
-      await createFont(new FormData(form));
-      setShowForm(false);
-      form.reset();
-      setNewContribId("");
+      const result = await createFont(new FormData(form));
+      if (result.success) {
+        setShowForm(false);
+        form.reset();
+        setNewContribId("");
+      }
+      return result;
     });
   }
 
@@ -60,8 +63,11 @@ export function FontsSection({ fonts, contributors }: FontsSectionProps) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     run(async () => {
-      await updateFont(fontId, formData);
-      setEditingId(null);
+      const result = await updateFont(fontId, formData);
+      if (result.success) {
+        setEditingId(null);
+      }
+      return result;
     });
   }
 
@@ -336,8 +342,9 @@ export function FontsSection({ fonts, contributors }: FontsSectionProps) {
                     </td>
                     <td className="px-4 py-3.5 text-xs text-muted-foreground">
                       MVR{" "}
-                      {f.base_price.toLocaleString("en-MV", {
+                      {f.base_price.toLocaleString("en-US", {
                         minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
                       })}
                     </td>
                     <td className="px-4 py-3.5 text-xs text-muted-foreground">

@@ -23,7 +23,7 @@ interface NewLicenseFormProps {
 }
 
 function mvr(n: number) {
-  return `MVR ${n.toLocaleString("en-MV", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `MVR ${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function NewLicenseForm({ fonts, buyers, defaultCaseId, defaultBuyerId, defaultFontId }: NewLicenseFormProps) {
@@ -71,8 +71,11 @@ export function NewLicenseForm({ fonts, buyers, defaultCaseId, defaultBuyerId, d
     if (defaultCaseId) formData.set("case_id", defaultCaseId);
 
     startTransition(async () => {
-      try { await createLicense(formData); }
-      catch (err) { setError(err instanceof Error ? err.message : "Failed to create license"); }
+      // createLicense redirects on success; only errors are returned
+      const result = await createLicense(formData);
+      if (!result.success) {
+        setError(result.error);
+      }
     });
   }
 

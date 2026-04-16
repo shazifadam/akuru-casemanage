@@ -52,16 +52,20 @@ export function BuyerForm({ buyer }: BuyerFormProps) {
     formData.set("buyer_type", buyerType);
 
     startTransition(async () => {
-      try {
-        if (isEdit) {
-          await updateBuyer(buyer.id, formData);
+      if (isEdit) {
+        const result = await updateBuyer(buyer.id, formData);
+        if (result.success) {
           router.push(`/buyers/${buyer.id}`);
           router.refresh();
         } else {
-          await createBuyer(formData);
+          setError(result.error);
         }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to save buyer");
+      } else {
+        const result = await createBuyer(formData);
+        if (!result.success) {
+          setError(result.error);
+        }
+        // On success, createBuyer redirects — no further action needed
       }
     });
   }

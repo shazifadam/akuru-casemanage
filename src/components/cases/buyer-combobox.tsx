@@ -102,16 +102,16 @@ export function BuyerCombobox({ buyers, value, onChange }: BuyerComboboxProps) {
     if (!quickName.trim()) return;
     setCreateError(null);
     startTransition(async () => {
-      try {
-        const created = await quickCreateBuyer(quickName.trim(), quickType);
-        const newBuyer: Buyer = { id: created.id, name: created.name, organization: null };
+      const result = await quickCreateBuyer(quickName.trim(), quickType);
+      if (result.success) {
+        const newBuyer: Buyer = { id: result.id, name: result.name, organization: null };
         setLocalBuyers((prev) => [...prev, newBuyer]);
-        onChange(created.id);
+        onChange(result.id);
         setOpen(false);
         setShowQuickCreate(false);
         setQuery("");
-      } catch (err) {
-        setCreateError(err instanceof Error ? err.message : "Failed to create buyer");
+      } else {
+        setCreateError(result.error);
       }
     });
   }

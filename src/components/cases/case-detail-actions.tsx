@@ -38,7 +38,11 @@ export function CaseDetailActions({
 
   async function handleDelete() {
     if (!confirm("Delete this case? This cannot be undone.")) return;
-    await deleteCase(caseId);
+    const result = await deleteCase(caseId);
+    if (!result.success) {
+      alert(result.error);
+    }
+    // On success, deleteCase redirects — no further action needed
   }
 
   return (

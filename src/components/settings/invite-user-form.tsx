@@ -22,13 +22,13 @@ export function InviteUserForm() {
     setTempPassword(null);
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
-      try {
-        const result = await createUser(formData);
+      const result = await createUser(formData);
+      if (result.success) {
         setTempPassword(result.tempPassword);
         (e.target as HTMLFormElement).reset();
         router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to create user");
+      } else {
+        setError(result.error);
       }
     });
   }

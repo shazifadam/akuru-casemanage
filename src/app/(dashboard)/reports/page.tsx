@@ -16,7 +16,7 @@ interface PageProps {
 function monthLabel(ym: string): string {
   const [y, m] = ym.split("-");
   const d = new Date(parseInt(y), parseInt(m) - 1, 1);
-  return d.toLocaleString("en-MV", { month: "short", year: "numeric" });
+  return d.toLocaleString("en-US", { month: "short", year: "numeric" });
 }
 
 export default async function ReportsPage({ searchParams }: PageProps) {

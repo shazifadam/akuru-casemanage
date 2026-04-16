@@ -52,11 +52,11 @@ export function ActivityTimeline({ caseId, activities }: ActivityTimelineProps) 
     if (!comment.trim()) return;
     setError(null);
     startTransition(async () => {
-      try {
-        await addCaseComment(caseId, comment);
+      const result = await addCaseComment(caseId, comment);
+      if (result.success) {
         setComment("");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to add comment");
+      } else {
+        setError(result.error);
       }
     });
   }

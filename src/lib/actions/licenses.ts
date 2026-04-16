@@ -9,53 +9,71 @@ import { CreateLicenseSchema, UpdateLicenseSchema } from "@/lib/validations";
 type ActionResult = { success: true } | { success: false; error: string };
 
 // ── Create a new license ───────────────────────────────────────────────────────
-export async function createLicense(formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+export async function createLicense(formData: FormData): Promise<ActionResult> {
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: "Not authenticated. Please log in again." };
+    }
 
-  const isFine = formData.get("is_fine") === "true";
-  const invoiceAmount = parseFloat(formData.get("invoice_amount") as string);
+    const isFine = formData.get("is_fine") === "true";
+    const invoiceAmount = parseFloat(formData.get("invoice_amount") as string);
 
-  const parsed = CreateLicenseSchema.safeParse({
-    buyer_id:       formData.get("buyer_id"),
-    font_id:        formData.get("font_id"),
-    purchase_date:  formData.get("purchase_date"),
-    invoice_amount: invoiceAmount,
-    payment_status: formData.get("payment_status") ?? "pending",
-    is_fine:        isFine,
-    source:         formData.get("source") ?? "direct_sale",
-    case_id:        (formData.get("case_id") as string) || null,
-  });
-  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
+    const parsed = CreateLicenseSchema.safeParse({
+      buyer_id:       formData.get("buyer_id"),
+      font_id:        formData.get("font_id"),
+      purchase_date:  formData.get("purchase_date"),
+      invoice_amount: invoiceAmount,
+      payment_status: formData.get("payment_status") ?? "pending",
+      is_fine:        isFine,
+      source:         formData.get("source") ?? "direct_sale",
+      case_id:        (formData.get("case_id") as string) || null,
+    });
+    if (!parsed.success) {
+      const issue = parsed.error.issues[0];
+      const path  = issue?.path?.join(".") ?? "unknown";
+      const msg   = issue?.message ?? "Validation failed";
+      console.error("[createLicense] validation error:", path, msg);
+      return { success: false, error: `${msg} (field: ${path})` };
+    }
 
-  const payload = {
-    buyer_id:       parsed.data.buyer_id,
-    font_id:        parsed.data.font_id,
-    purchase_date:  parsed.data.purchase_date,
-    invoice_amount: parsed.data.invoice_amount,
-    payment_status: parsed.data.payment_status as PaymentStatus,
-    is_fine:        parsed.data.is_fine,
-    fine_amount:    parsed.data.is_fine ? parsed.data.invoice_amount : null,
-    case_id:        parsed.data.case_id ?? null,
-    source:         parsed.data.source as LicenseSource,
-    qb_synced:      false,
-  };
+    const payload = {
+      buyer_id:       parsed.data.buyer_id,
+      font_id:        parsed.data.font_id,
+      purchase_date:  parsed.data.purchase_date,
+      invoice_amount: parsed.data.invoice_amount,
+      payment_status: parsed.data.payment_status as PaymentStatus,
+      is_fine:        parsed.data.is_fine,
+      fine_amount:    parsed.data.is_fine ? parsed.data.invoice_amount : null,
+      case_id:        parsed.data.case_id ?? null,
+      source:         parsed.data.source as LicenseSource,
+      qb_synced:      false,
+    };
 
-  const { data, error } = await supabase
-    .from("licenses")
-    .insert(payload)
-    .select("id")
-    .single();
+    const { data, error } = await supabase
+      .from("licenses")
+      .insert(payload)
+      .select("id")
+      .single();
 
-  if (error) {
-    console.error("[createLicense] DB error:", error.message, error.code);
-    throw new Error(`Could not create license: ${error.message}`);
+    if (error) {
+      console.error("[createLicense] DB error:", error.message, error.code);
+      return { success: false, error: `Could not create license: ${error.message}` };
+    }
+
+    revalidatePath("/licenses");
+    revalidateTag("licenses");
+    redirect(`/licenses/${data.id}`);
+  } catch (err) {
+    // redirect() throws internally — re-throw it so Next.js handles navigation
+    if ((err as any)?.digest?.startsWith?.("NEXT_REDIRECT")) throw err;
+    console.error("[createLicense] unexpected error:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "An unexpected error occurred.",
+    };
   }
-
-  revalidatePath("/licenses");
-  revalidateTag("licenses");
-  redirect(`/licenses/${data.id}`);
 }
 
 // ── Update a license ───────────────────────────────────────────────────────────
@@ -226,22 +244,35 @@ export async function bulkToggleQbSynced(ids: string[], value: boolean): Promise
 }
 
 // ── Delete a license (admin only) ──────────────────────────────────────────────
-export async function deleteLicense(licenseId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+export async function deleteLicense(licenseId: string): Promise<ActionResult> {
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: "Not authenticated. Please log in again." };
+    }
 
-  const { data: profile } = await supabase
-    .from("users").select("role").eq("id", user.id).single();
-  if (profile?.role !== "admin") throw new Error("Admin access required");
+    const { data: profile } = await supabase
+      .from("users").select("role").eq("id", user.id).single();
+    if (profile?.role !== "admin") {
+      return { success: false, error: "Admin access required." };
+    }
 
-  const { error } = await supabase.from("licenses").delete().eq("id", licenseId);
-  if (error) {
-    console.error("[deleteLicense] DB error:", error.message);
-    throw new Error("Operation failed. Please try again.");
+    const { error } = await supabase.from("licenses").delete().eq("id", licenseId);
+    if (error) {
+      console.error("[deleteLicense] DB error:", error.message, error.code);
+      return { success: false, error: `Could not delete license: ${error.message}` };
+    }
+
+    revalidatePath("/licenses");
+    revalidateTag("licenses");
+    redirect("/licenses");
+  } catch (err) {
+    if ((err as any)?.digest?.startsWith?.("NEXT_REDIRECT")) throw err;
+    console.error("[deleteLicense] unexpected error:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "An unexpected error occurred.",
+    };
   }
-
-  revalidatePath("/licenses");
-  revalidateTag("licenses");
-  redirect("/licenses");
 }

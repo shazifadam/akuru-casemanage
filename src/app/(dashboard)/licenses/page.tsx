@@ -24,7 +24,7 @@ interface PageProps {
 }
 
 function mvr(amount: number) {
-  return `MVR ${amount.toLocaleString("en-MV", {
+  return `MVR ${amount.toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;

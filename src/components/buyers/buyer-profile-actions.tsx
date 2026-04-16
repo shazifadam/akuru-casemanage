@@ -20,7 +20,11 @@ export function BuyerProfileActions({ buyerId, buyerName }: BuyerProfileActionsP
 
   async function handleDelete() {
     if (!confirm(`Delete ${buyerName}? This cannot be undone.`)) return;
-    await deleteBuyer(buyerId);
+    const result = await deleteBuyer(buyerId);
+    if (!result.success) {
+      alert(result.error);
+    }
+    // On success, deleteBuyer redirects — no further action needed
   }
 
   return (

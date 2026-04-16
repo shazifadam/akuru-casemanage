@@ -83,16 +83,16 @@ export function StatusChangeDialog({
     }
 
     startTransition(async () => {
-      try {
-        await transitionCaseStatus(caseId, targetStatus, {
-          dismissalReason: dismissalReason.trim() || undefined,
-        });
+      const result = await transitionCaseStatus(caseId, targetStatus, {
+        dismissalReason: dismissalReason.trim() || undefined,
+      });
+      if (result.success) {
         onOpenChange(false);
         setTargetStatus(null);
         setDismissalReason("");
         router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to change status");
+      } else {
+        setError(result.error);
       }
     });
   }

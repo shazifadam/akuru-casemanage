@@ -25,14 +25,14 @@ export function ContributorsSection({ contributors }: ContributorsSectionProps) 
   const [editingId, setEditingId]     = useState<string | null>(null);
   const [error, setError]             = useState<string | null>(null);
 
-  function run(fn: () => Promise<void>) {
+  function run(fn: () => Promise<{ success: true } | { success: false; error: string }>) {
     setError(null);
     startTransition(async () => {
-      try {
-        await fn();
+      const result = await fn();
+      if (result.success) {
         router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Operation failed");
+      } else {
+        setError(result.error);
       }
     });
   }
@@ -41,9 +41,12 @@ export function ContributorsSection({ contributors }: ContributorsSectionProps) 
     e.preventDefault();
     const form = e.currentTarget;
     run(async () => {
-      await createContributor(new FormData(form));
-      setShowForm(false);
-      form.reset();
+      const result = await createContributor(new FormData(form));
+      if (result.success) {
+        setShowForm(false);
+        form.reset();
+      }
+      return result;
     });
   }
 
@@ -51,8 +54,11 @@ export function ContributorsSection({ contributors }: ContributorsSectionProps) 
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     run(async () => {
-      await updateContributor(contributorId, formData);
-      setEditingId(null);
+      const result = await updateContributor(contributorId, formData);
+      if (result.success) {
+        setEditingId(null);
+      }
+      return result;
     });
   }
 

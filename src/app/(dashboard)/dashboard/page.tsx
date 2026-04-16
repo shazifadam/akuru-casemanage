@@ -10,7 +10,7 @@ import { getDashboardData } from "@/lib/data/queries";
 import type { CaseStatus } from "@/types/database";
 
 function mvr(n: number) {
-  return `MVR ${(n ?? 0).toLocaleString("en-MV", {
+  return `MVR ${(n ?? 0).toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
@@ -106,7 +106,7 @@ export default async function DashboardPage() {
       label:       "Akuru Revenue (MTD)",
       value:       mvr(revenueMtd),
       icon:        TrendingUp,
-      description: `Akuru share from paid licenses — ${now.toLocaleString("en-MV", { month: "long" })} ${now.getFullYear()}`,
+      description: `Akuru share from paid licenses — ${now.toLocaleString("en-US", { month: "long" })} ${now.getFullYear()}`,
       color:       "text-amber-600",
       bg:          "bg-amber-50",
       href:        "/reports",

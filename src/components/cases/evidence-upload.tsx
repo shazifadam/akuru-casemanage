@@ -46,12 +46,12 @@ export function EvidenceUpload({ caseId, caseNumber }: EvidenceUploadProps) {
     setUploading(false);
 
     startTransition(async () => {
-      try {
-        await addCaseEvidence(caseId, urlData.publicUrl, file.name);
+      const result = await addCaseEvidence(caseId, urlData.publicUrl, file.name);
+      if (result.success) {
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to log evidence");
+      } else {
+        setError(result.error);
       }
       // Reset file input
       if (fileRef.current) fileRef.current.value = "";

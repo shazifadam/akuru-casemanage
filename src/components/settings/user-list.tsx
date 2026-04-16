@@ -50,11 +50,11 @@ function UserRow({ user, currentUserId }: { user: UserRow; currentUserId: string
   function handleRoleChange(newRole: UserRole) {
     setError(null);
     startTransition(async () => {
-      try {
-        await updateUserRole(user.id, newRole);
+      const result = await updateUserRole(user.id, newRole);
+      if (result.success) {
         router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to update role");
+      } else {
+        setError(result.error);
       }
     });
   }
@@ -63,12 +63,12 @@ function UserRow({ user, currentUserId }: { user: UserRow; currentUserId: string
     if (!nameValue.trim()) return;
     setError(null);
     startTransition(async () => {
-      try {
-        await updateUserName(user.id, nameValue);
+      const result = await updateUserName(user.id, nameValue);
+      if (result.success) {
         setEditingName(false);
         router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to update name");
+      } else {
+        setError(result.error);
       }
     });
   }
@@ -77,11 +77,11 @@ function UserRow({ user, currentUserId }: { user: UserRow; currentUserId: string
     if (!confirm(`Delete user ${user.email}? This cannot be undone.`)) return;
     setError(null);
     startTransition(async () => {
-      try {
-        await deleteUser(user.id);
+      const result = await deleteUser(user.id);
+      if (result.success) {
         router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to delete user");
+      } else {
+        setError(result.error);
       }
     });
   }
@@ -152,7 +152,7 @@ function UserRow({ user, currentUserId }: { user: UserRow; currentUserId: string
 
       {/* Joined */}
       <td className="px-4 py-3 text-xs text-muted-foreground">
-        {new Date(user.created_at).toLocaleDateString("en-MV", { day: "numeric", month: "short", year: "numeric" })}
+        {new Date(user.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}
       </td>
 
       {/* Actions */}

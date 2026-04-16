@@ -50,11 +50,11 @@ export function EditCaseForm({ caseData, fonts, buyers }: EditCaseFormProps) {
     formData.set("usage_context", usageContext === "none" ? "" : usageContext);
 
     startTransition(async () => {
-      try {
-        await updateCase(caseData.id, formData);
+      const result = await updateCase(caseData.id, formData);
+      if (result.success) {
         router.push(`/cases/${caseData.id}`);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to update case");
+      } else {
+        setError(result.error);
       }
     });
   }

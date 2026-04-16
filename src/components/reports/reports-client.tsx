@@ -5,7 +5,7 @@ import { Download, BarChart2, PieChart, Users, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 function mvr(n: number) {
-  return `MVR ${(n ?? 0).toLocaleString("en-MV", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `MVR ${(n ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function downloadCsv(filename: string, rows: string[][], headers: string[]) {

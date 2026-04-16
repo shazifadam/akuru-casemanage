@@ -5,7 +5,7 @@ import { TrendingUp, Wallet, ArrowRight } from "lucide-react";
 import { getContributors, getContributorBalances } from "@/lib/data/queries";
 
 function mvr(n: number) {
-  return `MVR ${(n ?? 0).toLocaleString("en-MV", {
+  return `MVR ${(n ?? 0).toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;

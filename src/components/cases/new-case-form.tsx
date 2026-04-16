@@ -63,11 +63,11 @@ export function NewCaseForm({ fonts, buyers }: NewCaseFormProps) {
     }
 
     startTransition(async () => {
-      try {
-        await createCase(formData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to create case");
+      const result = await createCase(formData);
+      if (!result.success) {
+        setError(result.error);
       }
+      // On success, createCase redirects — no further action needed
     });
   }
 

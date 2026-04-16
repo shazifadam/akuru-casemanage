@@ -65,9 +65,12 @@ export function CaseTable({ cases, isAdmin }: CaseTableProps) {
 
   async function handleBulkAdvance() {
     // Determine common next status — advance to verify_license for simplicity
-    await bulkUpdateCaseStatus([...selected], "verify_license");
-    setSelected(new Set());
-    router.refresh();
+    const result = await bulkUpdateCaseStatus([...selected], "verify_license");
+    if (result.success) {
+      setSelected(new Set());
+      router.refresh();
+    }
+    // Errors here are non-blocking; silently skip (table will not refresh)
   }
 
   if (cases.length === 0) {
@@ -200,8 +203,8 @@ export function CaseTable({ cases, isAdmin }: CaseTableProps) {
                       {NEXT_STATUS[c.status] && (
                         <DropdownMenuItem
                           onClick={async () => {
-                            await bulkUpdateCaseStatus([c.id], NEXT_STATUS[c.status]!);
-                            router.refresh();
+                            const res = await bulkUpdateCaseStatus([c.id], NEXT_STATUS[c.status]!);
+                            if (res.success) router.refresh();
                           }}
                         >
                           Move to {CASE_STATUS_LABELS[NEXT_STATUS[c.status]!]}
@@ -211,8 +214,8 @@ export function CaseTable({ cases, isAdmin }: CaseTableProps) {
                         <DropdownMenuItem
                           key={alt.status}
                           onClick={async () => {
-                            await bulkUpdateCaseStatus([c.id], alt.status);
-                            router.refresh();
+                            const res = await bulkUpdateCaseStatus([c.id], alt.status);
+                            if (res.success) router.refresh();
                           }}
                         >
                           {alt.label}

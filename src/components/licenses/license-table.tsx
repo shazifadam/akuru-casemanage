@@ -17,7 +17,7 @@ import type { PaymentStatus, LicenseSource } from "@/types/database";
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function mvr(amount: number) {
-  return `MVR ${amount.toLocaleString("en-MV", {
+  return `MVR ${amount.toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
@@ -129,14 +129,13 @@ export function LicenseTable({ licenses }: { licenses: License[] }) {
       `Apply "${label}" to ${ids.length} selected license${ids.length !== 1 ? "s" : ""}?`,
       () => {
         startTransition(async () => {
-          try {
-            await bulkToggleQbSynced(ids, value);
+          const result = await bulkToggleQbSynced(ids, value);
+          if (result.success) {
             setSelected(new Set());
-            setConfirm(null);
-          } catch (e) {
-            setError(e instanceof Error ? e.message : "Something went wrong");
-            setConfirm(null);
+          } else {
+            setError(result.error);
           }
+          setConfirm(null);
         });
       },
     );

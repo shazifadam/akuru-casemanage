@@ -19,7 +19,7 @@ interface PayoutCalculatorProps {
 }
 
 function mvr(n: number) {
-  return `MVR ${(n ?? 0).toLocaleString("en-MV", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `MVR ${(n ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function PayoutCalculator({ contributorName, fonts }: PayoutCalculatorProps) {

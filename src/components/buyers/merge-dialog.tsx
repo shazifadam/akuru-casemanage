@@ -40,12 +40,11 @@ export function MergeDialog({ open, onOpenChange, currentBuyerId, currentBuyerNa
     if (!targetId) return;
     setError(null);
     startTransition(async () => {
-      try {
-        // Merge current (source) INTO target — all records move to target
-        await mergeBuyers(targetId, currentBuyerId);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Merge failed");
+      const result = await mergeBuyers(targetId, currentBuyerId);
+      if (!result.success) {
+        setError(result.error);
       }
+      // On success, mergeBuyers redirects — no further action needed
     });
   }
 
