@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { createClient } from "@/lib/supabase/server";
 import { NewCaseForm } from "@/components/cases/new-case-form";
 import Link from "next/link";

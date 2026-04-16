@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { createClient } from "@/lib/supabase/server";
 import { ReportsClient } from "@/components/reports/reports-client";
 import { DateRangePicker } from "@/components/ui/date-range-picker";

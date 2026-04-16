@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Mail, Building2, Tag, FileText, FolderOpen } from "lucide-react";
