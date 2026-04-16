@@ -34,15 +34,13 @@ export function RecordPayoutForm({ contributorId, contributorName, currentBalanc
     setSuccess(false);
     const form = e.currentTarget;
     const formData = new FormData(form);
-    formData.set("contributor_id", contributorId);
 
     startTransition(async () => {
       const result = await recordPayout(formData);
       if (result.success) {
         setSuccess(true);
         form.reset();
-        // Give the user a moment to see the success message,
-        // then do a hard reload so balances and payout history refresh from the DB.
+        // Hard reload so balances and payout history refresh from the DB.
         setTimeout(() => {
           window.location.reload();
         }, 1500);
@@ -66,6 +64,8 @@ export function RecordPayoutForm({ contributorId, contributorName, currentBalanc
       )}
 
       <form onSubmit={handleSubmit} className="space-y-3">
+        {/* Hidden field — included in FormData automatically on submit */}
+        <input type="hidden" name="contributor_id" value={contributorId} />
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <Label htmlFor="amount" className="text-xs">Amount (MVR) *</Label>
