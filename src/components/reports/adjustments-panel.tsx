@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ChevronDown, ChevronUp, Plus, Trash2, Loader2, SlidersHorizontal } from "lucide-react";
 import { createAdjustment, deleteAdjustment } from "@/lib/actions/adjustments";
@@ -33,9 +34,13 @@ interface AdjustmentsPanelProps {
 }
 
 export function AdjustmentsPanel({ adjustments, isAdmin }: AdjustmentsPanelProps) {
-  const [open, setOpen]           = useState(false);
-  const [showForm, setShowForm]   = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const [open, setOpen]         = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  // Separate transitions so create pending doesn't block delete buttons
+  const [isSaving,   startSave]   = useTransition();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Form state
   const [amount,    setAmount]    = useState("");
@@ -50,26 +55,31 @@ export function AdjustmentsPanel({ adjustments, isAdmin }: AdjustmentsPanelProps
     if (!amt || amt <= 0) { toast.error("Enter a valid positive amount."); return; }
     if (!reason.trim())   { toast.error("Reason is required."); return; }
 
-    startTransition(async () => {
+    startSave(async () => {
       const result = await createAdjustment({ amount: amt, direction, target, reason, entry_date: entryDate });
       if (result.success) {
         toast.success("Adjustment added");
         setAmount(""); setReason(""); setDirection("add"); setTarget("revenue");
         setEntryDate(new Date().toISOString().split("T")[0]);
         setShowForm(false);
+        router.refresh();
       } else {
         toast.error(result.error);
       }
     });
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     if (!confirm("Delete this adjustment? This cannot be undone.")) return;
-    startTransition(async () => {
-      const result = await deleteAdjustment(id);
-      if (result.success) toast.success("Adjustment deleted");
-      else toast.error(result.error);
-    });
+    setDeletingId(id);
+    const result = await deleteAdjustment(id);
+    setDeletingId(null);
+    if (result.success) {
+      toast.success("Adjustment deleted");
+      router.refresh();
+    } else {
+      toast.error(result.error);
+    }
   }
 
   return (
@@ -139,11 +149,14 @@ export function AdjustmentsPanel({ adjustments, isAdmin }: AdjustmentsPanelProps
                         {isAdmin && (
                           <button
                             onClick={() => handleDelete(a.id)}
-                            disabled={isPending}
+                            disabled={deletingId === a.id}
                             className="p-1 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-40"
                             title="Delete adjustment"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            {deletingId === a.id
+                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              : <Trash2 className="h-3.5 w-3.5" />
+                            }
                           </button>
                         )}
                       </td>
@@ -263,10 +276,10 @@ export function AdjustmentsPanel({ adjustments, isAdmin }: AdjustmentsPanelProps
                   <div className="flex items-center gap-2">
                     <button
                       type="submit"
-                      disabled={isPending}
+                      disabled={isSaving}
                       className="flex items-center gap-1.5 rounded-md bg-foreground text-background px-3 py-1.5 text-xs font-medium hover:opacity-90 disabled:opacity-50"
                     >
-                      {isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+                      {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
                       Save Adjustment
                     </button>
                     <button
