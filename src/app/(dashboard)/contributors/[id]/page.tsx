@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { RecordPayoutForm } from "@/components/contributors/record-payout-form";
+import { RecordPayoutFlow } from "@/components/contributors/record-payout-flow";
 import { PayoutCalculator } from "@/components/contributors/payout-calculator";
 import { LicensePaymentBadge } from "@/components/licenses/license-payment-badge";
 import type { PaymentStatus } from "@/types/database";
@@ -114,6 +114,20 @@ export default async function ContributorDetailPage({ params }: PageProps) {
     // Non-fatal — show zeros
   }
 
+  // ── Separate unpaid licenses for the payout flow ───────────────────────────
+  // Unpaid = customer has paid (payment_status === "paid") but not yet paid to contributor
+  const unpaidLicenses = licenses
+    .filter((l: any) => l.payment_status === "paid" && !l.paid_to_contributor)
+    .map((l: any) => ({
+      id:                l.id,
+      license_number:    l.license_number,
+      purchase_date:     l.purchase_date,
+      invoice_amount:    l.invoice_amount,
+      contributor_share: l.contributor_share,
+      font_name:         l.font?.name ?? "—",
+      buyer_name:        l.buyer?.name ?? "—",
+    }));
+
   // Primary font for the calculator (first active font)
   const primaryFont = fonts.find((f: any) => f.status === "active") ?? fonts[0] ?? null;
   const activeFonts = fonts.filter((f: any) => f.status === "active");
@@ -148,7 +162,11 @@ export default async function ContributorDetailPage({ params }: PageProps) {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Record Payout */}
-        <RecordPayoutForm contributorId={id} contributorName={contributor.name} currentBalance={balance} />
+        <RecordPayoutFlow
+          contributorId={id}
+          contributorName={contributor.name}
+          unpaidLicenses={unpaidLicenses}
+        />
 
         {/* Payout Calculator */}
         {primaryFont && activeFonts.length > 0 && (
