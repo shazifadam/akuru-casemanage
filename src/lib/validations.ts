@@ -7,8 +7,11 @@ import { z } from "zod";
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
-const uuid = z.string().uuid("Invalid ID format");
-const optionalUuid = z.string().uuid("Invalid ID format").nullable().optional();
+// NOTE: z.string().uuid() in Zod v4 applies stricter version-bit checks that
+// can reject valid PostgreSQL gen_random_uuid() output. Use explicit regex instead.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const uuid = z.string().regex(UUID_RE, "Invalid ID format");
+const optionalUuid = z.string().regex(UUID_RE, "Invalid ID format").nullable().optional();
 const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format");
