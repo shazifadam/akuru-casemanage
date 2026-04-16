@@ -18,9 +18,9 @@ export function SortableHeader({ column, label, className }: SortableHeaderProps
   const [, startTransition] = useTransition();
 
   const currentSort  = searchParams.get("sort");
-  const currentOrder = searchParams.get("order") ?? "asc";
+  const currentOrder = searchParams.get("order") ?? "desc";
   const isActive     = currentSort === column;
-  const nextOrder    = isActive && currentOrder === "asc" ? "desc" : "asc";
+  const nextOrder    = isActive && currentOrder === "desc" ? "asc" : "desc";
 
   function handleSort() {
     const params = new URLSearchParams(searchParams.toString());
