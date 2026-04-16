@@ -5,8 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
 // ── Validation schema for the new flow ────────────────────────────────────────
-
-const uuid = z.string().uuid("Invalid ID format");
+// Use explicit regex instead of z.string().uuid() — Zod v4's built-in UUID
+// checker has stricter version-bit requirements that can reject valid PG UUIDs.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const uuid    = z.string().regex(UUID_RE, "Invalid ID format");
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format");
 
 const RecordPayoutFlowSchema = z.object({
@@ -55,10 +57,19 @@ export async function recordPayout(input: {
     }
 
     // ── Validation ───────────────────────────────────────────────────────────
+    console.error("[recordPayout] input received:", JSON.stringify({
+      contributorId: input.contributorId,
+      licenseIds:    input.licenseIds?.slice(0, 3),
+      payoutDate:    input.payoutDate,
+    }));
+
     const parsed = RecordPayoutFlowSchema.safeParse(input);
     if (!parsed.success) {
-      const msg = parsed.error.issues[0]?.message ?? "Validation failed";
-      return { success: false, error: msg };
+      const issue = parsed.error.issues[0];
+      const path  = issue?.path?.join(".") ?? "unknown";
+      const msg   = issue?.message ?? "Validation failed";
+      console.error("[recordPayout] validation error:", path, msg);
+      return { success: false, error: `${msg} (field: ${path})` };
     }
 
     const { contributorId, licenseIds, payoutDate, invoiceNumber, notes } = parsed.data;
