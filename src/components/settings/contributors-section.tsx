@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Pencil, Trash2, Plus, Loader2 } from "lucide-react";
 import {
   createContributor,
@@ -23,16 +24,15 @@ export function ContributorsSection({ contributors }: ContributorsSectionProps) 
   const [isPending, startTransition] = useTransition();
   const [showForm, setShowForm]       = useState(false);
   const [editingId, setEditingId]     = useState<string | null>(null);
-  const [error, setError]             = useState<string | null>(null);
 
-  function run(fn: () => Promise<{ success: true } | { success: false; error: string }>) {
-    setError(null);
+  function run(fn: () => Promise<{ success: true } | { success: false; error: string }>, successMsg?: string) {
     startTransition(async () => {
       const result = await fn();
       if (result.success) {
+        if (successMsg) toast.success(successMsg);
         router.refresh();
       } else {
-        setError(result.error);
+        toast.error(result.error);
       }
     });
   }
@@ -47,7 +47,7 @@ export function ContributorsSection({ contributors }: ContributorsSectionProps) 
         form.reset();
       }
       return result;
-    });
+    }, "Contributor created");
   }
 
   function handleUpdate(contributorId: string, e: React.FormEvent<HTMLFormElement>) {
@@ -59,12 +59,12 @@ export function ContributorsSection({ contributors }: ContributorsSectionProps) 
         setEditingId(null);
       }
       return result;
-    });
+    }, "Contributor updated");
   }
 
   function handleDelete(contributorId: string, name: string) {
     if (!confirm(`Delete contributor "${name}"? This cannot be undone.`)) return;
-    run(() => deleteContributor(contributorId));
+    run(() => deleteContributor(contributorId), "Contributor deleted");
   }
 
   return (
@@ -85,12 +85,6 @@ export function ContributorsSection({ contributors }: ContributorsSectionProps) 
           Add Contributor
         </button>
       </div>
-
-      {error && (
-        <p className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-          {error}
-        </p>
-      )}
 
       {/* Create form */}
       {showForm && (

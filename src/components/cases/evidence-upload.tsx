@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Paperclip, Loader2, CheckCircle2 } from "lucide-react";
@@ -16,14 +17,12 @@ export function EvidenceUpload({ caseId, caseNumber }: EvidenceUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
-    setError(null);
     setSuccess(false);
 
     const supabase = createClient();
@@ -34,7 +33,7 @@ export function EvidenceUpload({ caseId, caseNumber }: EvidenceUploadProps) {
       .upload(path, file);
 
     if (uploadError) {
-      setError("Upload failed: " + uploadError.message);
+      toast.error("Upload failed: " + uploadError.message);
       setUploading(false);
       return;
     }
@@ -49,9 +48,10 @@ export function EvidenceUpload({ caseId, caseNumber }: EvidenceUploadProps) {
       const result = await addCaseEvidence(caseId, urlData.publicUrl, file.name);
       if (result.success) {
         setSuccess(true);
+        toast.success("Evidence uploaded successfully");
         setTimeout(() => setSuccess(false), 3000);
       } else {
-        setError(result.error);
+        toast.error(result.error);
       }
       // Reset file input
       if (fileRef.current) fileRef.current.value = "";
@@ -86,7 +86,6 @@ export function EvidenceUpload({ caseId, caseNumber }: EvidenceUploadProps) {
         )}
         {uploading ? "Uploading..." : isPending ? "Saving..." : success ? "Uploaded!" : "Upload Evidence"}
       </Button>
-      {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
     </div>
   );
 }

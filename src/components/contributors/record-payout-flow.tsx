@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,8 +44,6 @@ export function RecordPayoutFlow({
   const [payoutDate, setPayoutDate] = useState(new Date().toISOString().split("T")[0]);
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [notes, setNotes] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [successAmount, setSuccessAmount] = useState<number | null>(null);
 
   const allIds = unpaidLicenses.map((l) => l.id);
   const allSelected = allIds.length > 0 && selected.size === allIds.length;
@@ -75,7 +74,6 @@ export function RecordPayoutFlow({
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError(null);
 
     startTransition(async () => {
       const result = await recordPayout({
@@ -87,12 +85,12 @@ export function RecordPayoutFlow({
       });
 
       if (result.success) {
-        setSuccessAmount(result.amount);
+        toast.success(`Payout of ${mvr(result.amount)} recorded successfully`);
         setTimeout(() => {
           window.location.reload();
         }, 1500);
       } else {
-        setError(result.error);
+        toast.error(result.error);
       }
     });
   }
@@ -223,18 +221,11 @@ export function RecordPayoutFlow({
           />
         </div>
 
-        {error && <p className="text-xs text-destructive">{error}</p>}
-        {successAmount !== null && (
-          <p className="text-xs text-emerald-600">
-            ✓ Payout of {mvr(successAmount)} recorded! Refreshing page…
-          </p>
-        )}
-
         <Button
           type="submit"
           size="sm"
           className="w-full"
-          disabled={selected.size === 0 || isPending || successAmount !== null}
+          disabled={selected.size === 0 || isPending}
         >
           {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
           {selected.size === 0

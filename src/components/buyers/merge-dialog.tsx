@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,6 @@ export function MergeDialog({ open, onOpenChange, currentBuyerId, currentBuyerNa
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [targetId, setTargetId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   async function handleSearch() {
     if (!query.trim()) return;
@@ -38,11 +38,10 @@ export function MergeDialog({ open, onOpenChange, currentBuyerId, currentBuyerNa
 
   function handleConfirm() {
     if (!targetId) return;
-    setError(null);
     startTransition(async () => {
       const result = await mergeBuyers(targetId, currentBuyerId);
       if (!result.success) {
-        setError(result.error);
+        toast.error(result.error);
       }
       // On success, mergeBuyers redirects — no further action needed
     });
@@ -87,7 +86,6 @@ export function MergeDialog({ open, onOpenChange, currentBuyerId, currentBuyerNa
             </div>
           )}
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
         <DialogFooter>

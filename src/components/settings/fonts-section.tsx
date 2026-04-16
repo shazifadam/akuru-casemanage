@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Pencil, Trash2, Plus, Loader2 } from "lucide-react";
 import {
   createFont,
@@ -31,16 +32,15 @@ export function FontsSection({ fonts, contributors }: FontsSectionProps) {
   const [showForm, setShowForm]       = useState(false);
   const [editingId, setEditingId]     = useState<string | null>(null);
   const [newContribId, setNewContribId] = useState("");
-  const [error, setError]             = useState<string | null>(null);
 
-  function run(fn: () => Promise<{ success: true } | { success: false; error: string }>) {
-    setError(null);
+  function run(fn: () => Promise<{ success: true } | { success: false; error: string }>, successMsg?: string) {
     startTransition(async () => {
       const result = await fn();
       if (result.success) {
+        if (successMsg) toast.success(successMsg);
         router.refresh();
       } else {
-        setError(result.error);
+        toast.error(result.error);
       }
     });
   }
@@ -56,7 +56,7 @@ export function FontsSection({ fonts, contributors }: FontsSectionProps) {
         setNewContribId("");
       }
       return result;
-    });
+    }, "Font created");
   }
 
   function handleUpdate(fontId: string, e: React.FormEvent<HTMLFormElement>) {
@@ -68,12 +68,12 @@ export function FontsSection({ fonts, contributors }: FontsSectionProps) {
         setEditingId(null);
       }
       return result;
-    });
+    }, "Font updated");
   }
 
   function handleDelete(fontId: string, name: string) {
     if (!confirm(`Delete font "${name}"? This cannot be undone.`)) return;
-    run(() => deleteFont(fontId));
+    run(() => deleteFont(fontId), "Font deleted");
   }
 
   // Auto-fill share % from selected contributor
@@ -98,12 +98,6 @@ export function FontsSection({ fonts, contributors }: FontsSectionProps) {
           Add Font
         </button>
       </div>
-
-      {error && (
-        <p className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-          {error}
-        </p>
-      )}
 
       {/* Create form */}
       {showForm && (

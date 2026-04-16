@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { UserPlus, Loader2, Copy, Check, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,6 @@ import { createUser } from "@/lib/actions/users";
 
 export function InviteUserForm() {
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -18,17 +18,17 @@ export function InviteUserForm() {
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError(null);
     setTempPassword(null);
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
       const result = await createUser(formData);
       if (result.success) {
+        toast.success("User created successfully");
         setTempPassword(result.tempPassword);
         (e.target as HTMLFormElement).reset();
         router.refresh();
       } else {
-        setError(result.error);
+        toast.error(result.error);
       }
     });
   }
@@ -123,8 +123,6 @@ export function InviteUserForm() {
               <option value="admin">Admin — full access including settings</option>
             </select>
           </div>
-
-          {error && <p className="text-xs text-destructive">{error}</p>}
 
           <Button type="submit" size="sm" className="w-full" disabled={isPending}>
             {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}

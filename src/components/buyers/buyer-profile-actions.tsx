@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MergeDialog } from "./merge-dialog";
@@ -22,7 +23,7 @@ export function BuyerProfileActions({ buyerId, buyerName }: BuyerProfileActionsP
     if (!confirm(`Delete ${buyerName}? This cannot be undone.`)) return;
     const result = await deleteBuyer(buyerId);
     if (!result.success) {
-      alert(result.error);
+      toast.error(result.error ?? "Failed to delete buyer");
     }
     // On success, deleteBuyer redirects — no further action needed
   }

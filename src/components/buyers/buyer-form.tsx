@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +27,6 @@ interface SimilarBuyer {
 
 export function BuyerForm({ buyer }: BuyerFormProps) {
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
   const [buyerType, setBuyerType] = useState<BuyerType>(buyer?.buyer_type ?? "individual");
   const [similarBuyers, setSimilarBuyers] = useState<SimilarBuyer[]>([]);
   const [nameValue, setNameValue] = useState(buyer?.name ?? "");
@@ -47,7 +47,6 @@ export function BuyerForm({ buyer }: BuyerFormProps) {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError(null);
     const formData = new FormData(e.currentTarget);
     formData.set("buyer_type", buyerType);
 
@@ -55,15 +54,15 @@ export function BuyerForm({ buyer }: BuyerFormProps) {
       if (isEdit) {
         const result = await updateBuyer(buyer.id, formData);
         if (result.success) {
+          toast.success("Buyer updated successfully");
           router.push(`/buyers/${buyer.id}`);
-          router.refresh();
         } else {
-          setError(result.error);
+          toast.error(result.error);
         }
       } else {
         const result = await createBuyer(formData);
         if (!result.success) {
-          setError(result.error);
+          toast.error(result.error);
         }
         // On success, createBuyer redirects — no further action needed
       }
@@ -137,10 +136,6 @@ export function BuyerForm({ buyer }: BuyerFormProps) {
         <Label htmlFor="notes">Notes</Label>
         <Textarea id="notes" name="notes" placeholder="Any additional context..." rows={2} defaultValue={buyer?.notes ?? ""} />
       </div>
-
-      {error && (
-        <div className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>
-      )}
 
       <div className="flex justify-end gap-3">
         <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>

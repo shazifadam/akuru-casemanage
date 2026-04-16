@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,7 +31,6 @@ interface EditCaseFormProps {
 
 export function EditCaseForm({ caseData, fonts, buyers }: EditCaseFormProps) {
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const [buyerId, setBuyerId] = useState(caseData.buyer_id ?? "");
@@ -41,7 +41,6 @@ export function EditCaseForm({ caseData, fonts, buyers }: EditCaseFormProps) {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError(null);
 
     const form = e.currentTarget;
     const formData = new FormData(form);
@@ -52,9 +51,10 @@ export function EditCaseForm({ caseData, fonts, buyers }: EditCaseFormProps) {
     startTransition(async () => {
       const result = await updateCase(caseData.id, formData);
       if (result.success) {
+        toast.success("Case updated successfully");
         router.push(`/cases/${caseData.id}`);
       } else {
-        setError(result.error);
+        toast.error(result.error);
       }
     });
   }
@@ -131,12 +131,6 @@ export function EditCaseForm({ caseData, fonts, buyers }: EditCaseFormProps) {
           </div>
         </div>
       </div>
-
-      {error && (
-        <div className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {error}
-        </div>
-      )}
 
       <div className="flex justify-end gap-3">
         <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>

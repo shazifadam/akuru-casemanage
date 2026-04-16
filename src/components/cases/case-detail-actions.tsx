@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StatusChangeDialog } from "./status-change-dialog";
 import { EvidenceUpload } from "./evidence-upload";
@@ -40,7 +41,7 @@ export function CaseDetailActions({
     if (!confirm("Delete this case? This cannot be undone.")) return;
     const result = await deleteCase(caseId);
     if (!result.success) {
-      alert(result.error);
+      toast.error(result.error ?? "Failed to delete case");
     }
     // On success, deleteCase redirects — no further action needed
   }

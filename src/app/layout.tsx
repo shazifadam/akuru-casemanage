@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
+import { Toaster } from "sonner";
 import "./globals.css";
 import { PwaRegister } from "@/components/pwa-register";
 
@@ -80,6 +81,7 @@ export default function RootLayout({
         />
         {children}
         <PwaRegister />
+        <Toaster position="bottom-right" richColors closeButton />
       </body>
     </html>
   );

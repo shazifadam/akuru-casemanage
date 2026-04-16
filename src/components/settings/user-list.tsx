@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Shield, User, Trash2, Loader2, Pencil, Check, X } from "lucide-react";
 import { updateUserRole, updateUserName, deleteUser } from "@/lib/actions/users";
 import type { UserRole } from "@/types/database";
@@ -43,45 +44,44 @@ function UserRow({ user, currentUserId }: { user: UserRow; currentUserId: string
   const [isPending, startTransition] = useTransition();
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(user.full_name ?? "");
-  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const isSelf = user.id === currentUserId;
 
   function handleRoleChange(newRole: UserRole) {
-    setError(null);
     startTransition(async () => {
       const result = await updateUserRole(user.id, newRole);
       if (result.success) {
+        toast.success("Role updated");
         router.refresh();
       } else {
-        setError(result.error);
+        toast.error(result.error);
       }
     });
   }
 
   function handleNameSave() {
     if (!nameValue.trim()) return;
-    setError(null);
     startTransition(async () => {
       const result = await updateUserName(user.id, nameValue);
       if (result.success) {
+        toast.success("Name updated");
         setEditingName(false);
         router.refresh();
       } else {
-        setError(result.error);
+        toast.error(result.error);
       }
     });
   }
 
   function handleDelete() {
     if (!confirm(`Delete user ${user.email}? This cannot be undone.`)) return;
-    setError(null);
     startTransition(async () => {
       const result = await deleteUser(user.id);
       if (result.success) {
+        toast.success("User deleted");
         router.refresh();
       } else {
-        setError(result.error);
+        toast.error(result.error);
       }
     });
   }
@@ -125,7 +125,6 @@ function UserRow({ user, currentUserId }: { user: UserRow; currentUserId: string
             )}
           </div>
         )}
-        {error && <p className="text-xs text-destructive mt-0.5">{error}</p>}
       </td>
 
       {/* Role */}

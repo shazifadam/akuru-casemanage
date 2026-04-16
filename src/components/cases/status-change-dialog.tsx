@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -87,6 +88,7 @@ export function StatusChangeDialog({
         dismissalReason: dismissalReason.trim() || undefined,
       });
       if (result.success) {
+        toast.success("Case status updated");
         onOpenChange(false);
         setTargetStatus(null);
         setDismissalReason("");
