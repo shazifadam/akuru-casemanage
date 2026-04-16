@@ -35,14 +35,11 @@ interface AdjustmentsPanelProps {
 
 export function AdjustmentsPanel({ adjustments, isAdmin }: AdjustmentsPanelProps) {
   const router = useRouter();
-  const [open, setOpen]         = useState(false);
+  const [open,     setOpen]     = useState(false);
   const [showForm, setShowForm] = useState(false);
-
-  // Separate transitions so create pending doesn't block delete buttons
-  const [isSaving,   startSave]   = useTransition();
+  const [isSaving,  startSave]   = useTransition();
   const [isDeleting, startDelete] = useTransition();
-  const [deletingId,  setDeletingId]  = useState<string | null>(null); // currently being deleted
-  const [confirmId,   setConfirmId]   = useState<string | null>(null); // awaiting tap-to-confirm
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Form state
   const [amount,    setAmount]    = useState("");
@@ -71,13 +68,8 @@ export function AdjustmentsPanel({ adjustments, isAdmin }: AdjustmentsPanelProps
     });
   }
 
-  function handleDelete(id: string) {
-    // First click → show "Confirm?" state; second click → actually delete
-    if (confirmId !== id) {
-      setConfirmId(id);
-      return;
-    }
-    setConfirmId(null);
+  function handleDelete(e: React.MouseEvent, id: string) {
+    e.stopPropagation();
     setDeletingId(id);
     startDelete(async () => {
       const result = await deleteAdjustment(id);
@@ -87,16 +79,20 @@ export function AdjustmentsPanel({ adjustments, isAdmin }: AdjustmentsPanelProps
         router.refresh();
       } else {
         toast.error(result.error);
+        setDeletingId(null);
       }
     });
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
-      {/* Toggle header */}
-      <button
+    <div className="rounded-xl border border-border bg-card">
+      {/* Toggle header — div not button, so no nested-button conflicts */}
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-muted/30 transition-colors"
+        onKeyDown={(e) => e.key === "Enter" && setOpen((o) => !o)}
+        className="flex items-center justify-between px-5 py-3.5 cursor-pointer hover:bg-muted/30 transition-colors rounded-xl select-none"
       >
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
@@ -110,21 +106,22 @@ export function AdjustmentsPanel({ adjustments, isAdmin }: AdjustmentsPanelProps
           </span>
         </div>
         {open
-          ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+          ? <ChevronUp  className="h-3.5 w-3.5 text-muted-foreground" />
           : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
         }
-      </button>
+      </div>
 
       {open && (
-        <div className="border-t border-border divide-y divide-border">
-          {/* Existing adjustments table */}
+        <div className="border-t border-border">
+
+          {/* Existing adjustments */}
           {adjustments.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-muted/20">
+                  <tr className="border-b border-border bg-muted/20">
                     {["Date", "Affects", "Direction", "Amount", "Reason", ""].map((h) => (
-                      <th key={h} className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
+                      <th key={h} className="px-4 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                         {h}
                       </th>
                     ))}
@@ -148,47 +145,27 @@ export function AdjustmentsPanel({ adjustments, isAdmin }: AdjustmentsPanelProps
                           {a.direction === "add" ? "+ Add" : "− Subtract"}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-xs font-semibold tabular-nums">
+                      <td className="px-4 py-2.5 text-xs font-semibold tabular-nums whitespace-nowrap">
                         {mvr(a.amount)}
                       </td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground max-w-xs truncate">
                         {a.reason}
                       </td>
-                      <td className="px-4 py-2.5">
+                      <td className="px-4 py-2.5 text-right">
                         {isAdmin && (
-                        <div className="flex items-center gap-1">
-                          {confirmId === a.id && (
-                            <>
-                              <button
-                                onClick={() => setConfirmId(null)}
-                                className="px-1.5 py-0.5 rounded text-[10px] border border-input hover:bg-accent"
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                onClick={() => handleDelete(a.id)}
-                                disabled={deletingId === a.id}
-                                className="px-1.5 py-0.5 rounded text-[10px] bg-red-600 text-white hover:bg-red-700 disabled:opacity-40"
-                              >
-                                Confirm
-                              </button>
-                            </>
-                          )}
-                          {confirmId !== a.id && (
-                            <button
-                              onClick={() => handleDelete(a.id)}
-                              disabled={deletingId === a.id}
-                              className="p-1 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-40"
-                              title="Delete"
-                            >
-                              {deletingId === a.id
-                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                : <Trash2 className="h-3.5 w-3.5" />
-                              }
-                            </button>
-                          )}
-                        </div>
-                      )}
+                          <button
+                            type="button"
+                            onClick={(e) => handleDelete(e, a.id)}
+                            disabled={deletingId === a.id || isDeleting}
+                            className="inline-flex items-center justify-center p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Delete"
+                          >
+                            {deletingId === a.id
+                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              : <Trash2 className="h-3.5 w-3.5" />
+                            }
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -203,10 +180,11 @@ export function AdjustmentsPanel({ adjustments, isAdmin }: AdjustmentsPanelProps
 
           {/* Add form */}
           {isAdmin && (
-            <div className="px-5 py-4">
+            <div className="px-5 py-4 border-t border-border">
               {!showForm ? (
                 <button
-                  onClick={() => setShowForm(true)}
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setShowForm(true); }}
                   className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -218,7 +196,6 @@ export function AdjustmentsPanel({ adjustments, isAdmin }: AdjustmentsPanelProps
                     New Adjustment
                   </p>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {/* Target total */}
                     <div className="space-y-1">
                       <label className="block text-xs font-medium">Affects Total *</label>
                       <select
@@ -232,7 +209,6 @@ export function AdjustmentsPanel({ adjustments, isAdmin }: AdjustmentsPanelProps
                       </select>
                     </div>
 
-                    {/* Direction */}
                     <div className="space-y-1">
                       <label className="block text-xs font-medium">Direction *</label>
                       <div className="flex h-8 rounded-md border border-input overflow-hidden text-xs">
@@ -261,7 +237,6 @@ export function AdjustmentsPanel({ adjustments, isAdmin }: AdjustmentsPanelProps
                       </div>
                     </div>
 
-                    {/* Amount */}
                     <div className="space-y-1">
                       <label className="block text-xs font-medium">Amount (MVR) *</label>
                       <input
@@ -276,7 +251,6 @@ export function AdjustmentsPanel({ adjustments, isAdmin }: AdjustmentsPanelProps
                       />
                     </div>
 
-                    {/* Date */}
                     <div className="space-y-1">
                       <label className="block text-xs font-medium">Entry Date *</label>
                       <input
@@ -288,14 +262,13 @@ export function AdjustmentsPanel({ adjustments, isAdmin }: AdjustmentsPanelProps
                       />
                     </div>
 
-                    {/* Reason */}
                     <div className="space-y-1 sm:col-span-2">
                       <label className="block text-xs font-medium">Reason *</label>
                       <input
                         type="text"
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
-                        placeholder="e.g. Bank charge reversal, GST correction, etc."
+                        placeholder="e.g. Bank charge reversal, GST correction"
                         required
                         maxLength={500}
                         className="w-full h-8 rounded-md border border-input bg-background px-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
