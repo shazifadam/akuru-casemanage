@@ -78,7 +78,7 @@ export const UpdateBuyerSchema = CreateBuyerSchema;
 
 const CasePriorityEnum  = z.enum(["low", "medium", "high", "critical"]);
 const UsageContextEnum  = z.enum([
-  "print", "digital", "broadcast", "web", "social_media", "election_material", "other",
+  "social_media", "campaign_material", "government_doc", "commercial_product", "website", "print_media", "other",
 ]).nullable().optional();
 
 export const CreateCaseSchema = z.object({
