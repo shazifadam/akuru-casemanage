@@ -32,11 +32,14 @@ const PIPELINE: CaseStatus[] = [
 function getAvailableTransitions(current: CaseStatus): CaseStatus[] {
   switch (current) {
     case "identified":
-      return ["verify_license", "dismissed"];
+      // Can skip verify step and go straight to license_verified, or dismiss
+      return ["verify_license", "license_verified", "dismissed"];
     case "verify_license":
-      return ["license_verified", "dismissed"];
+      // Can step back to identified, confirm verified, or dismiss
+      return ["identified", "license_verified", "dismissed"];
     case "license_verified":
-      return ["converted", "fined", "dismissed"];
+      // converted/fined require a license — handled separately via Issue License button
+      return ["dismissed"];
     case "converted":
     case "fined":
     case "dismissed":
@@ -73,13 +76,6 @@ export function StatusChangeDialog({
 
     if (targetStatus === "dismissed" && !dismissalReason.trim()) {
       setError("Dismissal reason is required.");
-      return;
-    }
-
-    if (targetStatus === "converted" || targetStatus === "fined") {
-      setError(
-        "Please use the 'Issue License' action on the case to resolve with Converted or Fined status — a license must be linked."
-      );
       return;
     }
 
@@ -146,16 +142,10 @@ export function StatusChangeDialog({
                 >
                   <CaseStatusBadge status={status} />
                   <div className="flex-1 text-xs text-muted-foreground">
-                    {status === "verify_license" &&
-                      "Actively checking whether user has a license"}
-                    {status === "license_verified" &&
-                      "Confirmed: no valid license exists"}
-                    {status === "converted" &&
-                      "User purchased a license (link license record required)"}
-                    {status === "fined" &&
-                      "User was fined (link license record required)"}
-                    {status === "dismissed" &&
-                      "Close without action — requires reason"}
+                    {status === "identified"      && "Move back to identified — still under review"}
+                    {status === "verify_license"  && "Actively checking whether user has a valid license"}
+                    {status === "license_verified" && "Confirmed: no valid license — ready to issue one"}
+                    {status === "dismissed"        && "Close without action — requires reason"}
                   </div>
                 </button>
               ))}
