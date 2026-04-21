@@ -203,9 +203,9 @@ export function calculateLicenseFinancials(
 export const CASE_STATUS_LABELS: Record<CaseStatus, string> = {
   identified: "Identified",
   verify_license: "Verify License",
-  license_verified: "License Verified",
+  license_verified: "Issue License",
   converted: "Converted",
-  fined: "Fined",
+  fined: "License Issued",
   dismissed: "Dismissed",
 };
 

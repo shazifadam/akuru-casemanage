@@ -142,9 +142,9 @@ export function StatusChangeDialog({
                 >
                   <CaseStatusBadge status={status} />
                   <div className="flex-1 text-xs text-muted-foreground">
-                    {status === "identified"      && "Move back to identified — still under review"}
+                    {status === "identified"       && "Move back to identified — still under review"}
                     {status === "verify_license"  && "Actively checking whether user has a valid license"}
-                    {status === "license_verified" && "Confirmed: no valid license — ready to issue one"}
+                    {status === "license_verified" && "Ready to issue a license or enforcement fine"}
                     {status === "dismissed"        && "Close without action — requires reason"}
                   </div>
                 </button>
