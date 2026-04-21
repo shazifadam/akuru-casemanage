@@ -88,6 +88,9 @@ export default async function CaseDetailPage({ params }: PageProps) {
           currentStatus={caseData.status}
           caseNumber={caseData.case_number}
           isAdmin={isAdmin}
+          fontId={caseData.font?.id}
+          buyerId={caseData.buyer_id}
+          isElectionCase={!!(caseData.constituency || caseData.party)}
         />
       </div>
 

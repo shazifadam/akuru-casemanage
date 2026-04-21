@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowRightLeft, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { ArrowRightLeft, FileCheck, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import type { CaseStatus } from "@/types/database";
 
 interface CaseDetailActionsProps {
@@ -23,6 +23,9 @@ interface CaseDetailActionsProps {
   currentStatus: CaseStatus;
   caseNumber: string;
   isAdmin: boolean;
+  fontId?: string;
+  buyerId?: string | null;
+  isElectionCase?: boolean;
 }
 
 const TERMINAL: CaseStatus[] = ["converted", "fined", "dismissed"];
@@ -32,10 +35,21 @@ export function CaseDetailActions({
   currentStatus,
   caseNumber,
   isAdmin,
+  fontId,
+  buyerId,
+  isElectionCase,
 }: CaseDetailActionsProps) {
   const router = useRouter();
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const isTerminal = TERMINAL.includes(currentStatus);
+  const canIssueLicense = currentStatus === "license_verified";
+
+  // Build the URL for issuing a license from this case
+  const issueLicenseParams = new URLSearchParams({ case_id: caseId });
+  if (fontId) issueLicenseParams.set("font_id", fontId);
+  if (buyerId) issueLicenseParams.set("buyer_id", buyerId);
+  issueLicenseParams.set("source", isElectionCase ? "election_case" : "enforcement");
+  const issueLicenseHref = `/licenses/new?${issueLicenseParams.toString()}`;
 
   async function handleDelete() {
     if (!confirm("Delete this case? This cannot be undone.")) return;
@@ -48,6 +62,16 @@ export function CaseDetailActions({
 
   return (
     <div className="flex items-center gap-2">
+      {/* Issue License — only when license is verified and ready to resolve */}
+      {canIssueLicense && (
+        <Button size="sm" className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white" asChild>
+          <Link href={issueLicenseHref}>
+            <FileCheck className="h-3.5 w-3.5" />
+            Issue License
+          </Link>
+        </Button>
+      )}
+
       {/* Change status */}
       {!isTerminal && (
         <Button

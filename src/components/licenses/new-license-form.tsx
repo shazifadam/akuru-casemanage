@@ -15,19 +15,23 @@ import { BuyerCombobox } from "@/components/cases/buyer-combobox";
 interface Font extends Pick<DbFont, "id" | "name" | "base_price" | "contributor_share_pct" | "gst_rate" | "contributor_id"> {}
 interface Buyer { id: string; name: string; organization: string | null }
 
+interface OpenCase { id: string; case_number: string; title: string }
+
 interface NewLicenseFormProps {
   fonts: Font[];
   buyers: Buyer[];
+  openCases?: OpenCase[];
   defaultCaseId?: string;
   defaultBuyerId?: string;
   defaultFontId?: string;
+  defaultSource?: string;
 }
 
 function mvr(n: number) {
   return `MVR ${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function NewLicenseForm({ fonts, buyers, defaultCaseId, defaultBuyerId, defaultFontId }: NewLicenseFormProps) {
+export function NewLicenseForm({ fonts, buyers, openCases, defaultCaseId, defaultBuyerId, defaultFontId, defaultSource }: NewLicenseFormProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -35,8 +39,11 @@ export function NewLicenseForm({ fonts, buyers, defaultCaseId, defaultBuyerId, d
   const [buyerId, setBuyerId] = useState(defaultBuyerId ?? "");
   const [isFine, setIsFine] = useState(false);
   const [customAmount, setCustomAmount] = useState("");
-  const [source, setSource] = useState("direct_sale");
+  const [source, setSource] = useState(defaultSource ?? "direct_sale");
   const [paymentStatus, setPaymentStatus] = useState("pending");
+  const [linkedCaseId, setLinkedCaseId] = useState(defaultCaseId ?? "");
+
+  const needsCaseLink = (source === "enforcement" || source === "election_case") && !defaultCaseId;
 
   const selectedFont = fonts.find((f) => f.id === fontId) ?? null;
 
@@ -57,6 +64,7 @@ export function NewLicenseForm({ fonts, buyers, defaultCaseId, defaultBuyerId, d
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!fontId || !buyerId) { toast.error("Buyer and font are required."); return; }
+    if (needsCaseLink && !linkedCaseId) { toast.error("A linked case is required for enforcement/election sources."); return; }
 
     const form = e.currentTarget;
     const formData = new FormData(form);
@@ -66,7 +74,8 @@ export function NewLicenseForm({ fonts, buyers, defaultCaseId, defaultBuyerId, d
     formData.set("source", source);
     formData.set("payment_status", paymentStatus);
     formData.set("invoice_amount", financials?.invoice_amount.toString() ?? "0");
-    if (defaultCaseId) formData.set("case_id", defaultCaseId);
+    const effectiveCaseId = defaultCaseId || (needsCaseLink ? linkedCaseId : null);
+    if (effectiveCaseId) formData.set("case_id", effectiveCaseId);
 
     startTransition(async () => {
       // createLicense redirects on success; only errors are returned
@@ -121,6 +130,31 @@ export function NewLicenseForm({ fonts, buyers, defaultCaseId, defaultBuyerId, d
           </select>
         </div>
       </div>
+
+      {/* Case link — required for enforcement/election_case when not coming from a case */}
+      {needsCaseLink && (
+        <div className="space-y-1.5">
+          <Label>
+            Linked Case <span className="text-destructive">*</span>
+          </Label>
+          <select
+            value={linkedCaseId}
+            onChange={(e) => setLinkedCaseId(e.target.value)}
+            className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            required
+          >
+            <option value="">Select open case…</option>
+            {(openCases ?? []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.case_number} — {c.title}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-muted-foreground">
+            Enforcement and election case licenses must be linked to a case record.
+          </p>
+        </div>
+      )}
 
       {/* Fine toggle */}
       <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-4">

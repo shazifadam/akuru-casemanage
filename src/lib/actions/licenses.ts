@@ -3,7 +3,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { PaymentStatus, LicenseSource } from "@/types/database";
+import type { PaymentStatus, LicenseSource, CaseStatus } from "@/types/database";
 import { CreateLicenseSchema, UpdateLicenseSchema } from "@/lib/validations";
 
 type ActionResult = { success: true } | { success: false; error: string };
@@ -60,6 +60,23 @@ export async function createLicense(formData: FormData): Promise<ActionResult> {
     if (error) {
       console.error("[createLicense] DB error:", error.message, error.code);
       return { success: false, error: `Could not create license: ${error.message}` };
+    }
+
+    // If created from a case, auto-transition the case status and redirect back there
+    if (parsed.data.case_id) {
+      const newStatus: CaseStatus = parsed.data.is_fine ? "fined" : "converted";
+      await supabase.from("cases").update({
+        status: newStatus,
+        license_id: data.id,
+        resolved_date: new Date().toISOString().split("T")[0],
+        resolution_type: parsed.data.is_fine ? "fined" : "purchased",
+      }).eq("id", parsed.data.case_id);
+
+      revalidatePath("/licenses");
+      revalidatePath("/cases");
+      revalidateTag("licenses");
+      revalidateTag("cases");
+      redirect(`/cases/${parsed.data.case_id}`);
     }
 
     revalidatePath("/licenses");
